@@ -1,10 +1,13 @@
 import express, { Request, Response } from "express";
+import cors from "cors";
 import Database from "better-sqlite3";
 
 const app = express();
 const port = 3000;
 
 const db = new Database("game.db");
+
+app.use(cors());
 
 db.exec(`
     CREATE TABLE IF NOT EXISTS users (
@@ -24,17 +27,30 @@ app.post("/xp", (req: Request, res: Response) => {
         return;
     }
 
-    const stmt = db.prepare(`
+    const updateStmt = db.prepare(`
         INSERT INTO users (id, xp) VALUES (?, ?)
         ON CONFLICT(id) DO UPDATE SET xp = xp + excluded.xp
-    `);
+        `);
 
-    stmt.run(userId, amount);
+    updateStmt.run(userId, amount);
+
+    const selectStmt = db.prepare("SELECT xp FROM users WHERE id = ?");
+    const row = selectStmt.get(userId) as { xp: number } | undefined;
+
+    const currentXp = row ? row.xp : 0;
 
     res.status(200).json({
         success: true,
         message: `XP update pour ${userId}`,
+        currentXp: currentXp,
     });
+});
+
+app.get("/xp/all", (req: Request, res: Response) => {
+    const allUsers = db
+        .prepare("SELECT id, xp FROM users ORDER BY xp DESC")
+        .all() as { id: string; xp: number }[] | undefined;
+    res.status(200).json(allUsers || []);
 });
 
 app.get("/xp/:userId", (req: Request, res: Response) => {

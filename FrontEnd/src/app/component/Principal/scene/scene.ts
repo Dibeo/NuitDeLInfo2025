@@ -24,6 +24,7 @@ export class Scene implements AfterViewInit {
   private scene!: THREE.Scene;
 
   private gltfMesh!: THREE.Group;
+  private movingGLTF: THREE.Group[] = [];
 
 
   private raycaster = new THREE.Raycaster();
@@ -40,19 +41,19 @@ export class Scene implements AfterViewInit {
     this.createScene();
 
 
-    this.startRenderingLoop();
-    this.startSpawningCubes();
+    //this.startRenderingLoop();
+    this.startSpawningGLTF();
 
     this.canvas.addEventListener('click', (event) => this.onClick(event), false);
-    window.addEventListener('resize', () => this.onWindowResize(), false);
 
 
-    /*this.loadGLTFModel('assets/Principal/HORNET.glb')
+    this.loadGLTFModel('assets/Principal/tree/voxel_tutorial_-_scene_2.glb')
       .then(() => {
+        this.startRenderingLoop();
       })
       .catch((error) => {
         console.error('Erreur lors du chargement du modèle GLB:', error);
-      });*/
+      });
   }
 
   // ---------------------------------- Scene ----------------------------------------------------
@@ -100,6 +101,7 @@ export class Scene implements AfterViewInit {
           this.gltfMesh = gltf.scene; // l'objet chargé
           this.gltfMesh.scale.set(1, 1, 1);
           this.scene.add(this.gltfMesh);
+          this.gltfMesh.position.z = 100;
           resolve();
         },
         undefined,
@@ -113,87 +115,43 @@ export class Scene implements AfterViewInit {
 
 
 
-  private updateMovingCubes(): void {
-    for (let i = this.movingCubes.length - 1; i >= 0; i--) {
-      const cube = this.movingCubes[i];
-      cube.position.z += this.cubeSpeed;
 
-      if (cube.position.z > this.camera.position.z + 1) {
-        this.scene.remove(cube);
-        cube.geometry.dispose();
-        (cube.material as THREE.Material).dispose();
-        this.movingCubes.splice(i, 1);
+  private updateMovingGLTF(): void {
+    for (let i = this.movingGLTF.length - 1; i >= 0; i--) {
+      const obj = this.movingGLTF[i];
+      obj.position.z += this.cubeSpeed;
+
+      if (obj.position.z > this.camera.position.z + 1) {
+        this.scene.remove(obj);
+        this.movingGLTF.splice(i, 1);
       }
     }
   }
 
-  private startSpawningCubes(): void {
+
+  private startSpawningGLTF(): void {
     setInterval(() => {
-      if (this.movingCubes.length < 30) {
-        this.spawnMovingCube();
+      if (this.gltfMesh && this.movingGLTF.length < 30) {
+        this.spawnMovingGLTF();
       }
-    }, 1000); // un cube maximum toutes les 1 seconde
+    }, 1000);
   }
-
-  private spawnMovingCube(): void {
-    const size = THREE.MathUtils.randFloat(0.5, 2);
-    const geometry = new THREE.BoxGeometry(size, size, size);
-    const material = new THREE.MeshStandardMaterial({
-      color: Math.random() * 0xffffff
-    });
-
-    const cube = new THREE.Mesh(geometry, material);
-
-    // Placement aléatoire sur un large axe X et Y
-    let x: number;
-    if (Math.random() < 0.5) {
-      x = THREE.MathUtils.randFloat(-10, -5);
-    } else {
-      x = THREE.MathUtils.randFloat(5, 10);
-    }
-    cube.position.set(
-      x, // gauche/droite
-      0,   // haut/bas
-      -50                                  // loin devant caméra
-    );
-
-    cube.scale.y = 10;
-
-    this.scene.add(cube);
-    this.movingCubes.push(cube);
-  }
-
 
   private startRenderingLoop(): void {
-      this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
-      this.renderer.setPixelRatio(devicePixelRatio);
-      this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
+    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
+    this.renderer.setPixelRatio(devicePixelRatio);
+    this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
 
 
-  const render = () => {
-    requestAnimationFrame(render);
-    this.updateMovingCubes();  // ← ajout ici
-    this.renderer.render(this.scene, this.camera);
-  };
+    const render = () => {
+      requestAnimationFrame(render);
+      this.updateMovingGLTF();  // ← ajout ici
+      this.renderer.render(this.scene, this.camera);
+    };
 
       render();
   }
 
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  private onWindowResize(): void {
-    const width = this.canvas.clientWidth;
-    const height = this.canvas.clientHeight;
-
-    // Mettre à jour la caméra
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
-
-    // Mettre à jour le renderer
-    this.renderer.setSize(width, height);
-  }
 
   private onClick(event: MouseEvent): void {
     // Coordonnées normalisées (-1 à +1) pour Three.js
@@ -218,5 +176,31 @@ export class Scene implements AfterViewInit {
 
 
     }
+  }
+
+
+  private spawnMovingGLTF(): void {
+    if (!this.gltfMesh) return;
+
+    // Clone en profondeur
+    const clone = this.gltfMesh.clone(true);
+
+    // Position aléatoire comme pour les cubes
+    let x: number;
+    if (Math.random() < 0.5) {
+      x = THREE.MathUtils.randFloat(-10, -5);
+    } else {
+      x = THREE.MathUtils.randFloat(5, 10);
+    }
+
+    clone.position.set(x, -5, -50);
+
+    // Optionnel : scale aléatoire
+    const scale = THREE.MathUtils.randFloat(0.5, 2);
+    clone.scale.set(scale, scale, scale);
+
+    this.scene.add(clone);
+    this.movingGLTF.push(clone);
+
   }
 }

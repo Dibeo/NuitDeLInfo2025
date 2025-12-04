@@ -71,6 +71,9 @@ export class Scene implements AfterViewInit {
 
     this.camera.position.z = this.cameraZ;
 
+    //this.scene.fog = new THREE.Fog(0x000000, 10, 100);
+    this.scene.fog = new THREE.FogExp2(0x331100, 0.02);
+
 
     const geometry = new THREE.BoxGeometry();
     const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
@@ -88,6 +91,18 @@ export class Scene implements AfterViewInit {
       this.scene.environment = texture;
     });
 
+    //animations
+    this.loadGLTFAnime('assets/Principal/poule/crazycock_character_low_poly_animated.glb').then(({ model, mixer }) => {
+      this.scene.add(model);
+      const clock = new THREE.Clock();
+      const animate = () => {
+        requestAnimationFrame(animate);
+        const delta = clock.getDelta();
+        mixer.update(delta);
+        this.renderer.render(this.scene, this.camera);
+      };
+      animate();
+    });
 
     // Lumières pour éclairer correctement le modèle
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -98,23 +113,53 @@ export class Scene implements AfterViewInit {
     this.scene.add(directionalLight);
   }
 
+  //------------------------------------ Load Model ----------------------------------------------
 
 
   private async loadGLTFModel(path: string): Promise<THREE.Group> {
-  const loader = new GLTFLoader();
-  return new Promise((resolve, reject) => {
-    loader.load(
-      path,
-      (gltf) => {
-        const obj = gltf.scene;
-        obj.scale.set(1, 1, 1);
-        resolve(obj);
-      },
-      undefined,
-      (error) => reject(error)
-    );
-  });
-}
+    const loader = new GLTFLoader();
+    return new Promise((resolve, reject) => {
+      loader.load(
+        path,
+        (gltf) => {
+          const obj = gltf.scene;
+          obj.scale.set(1, 1, 1);
+          resolve(obj);
+        },
+        undefined,
+        (error) => reject(error)
+      );
+    });
+  }
+
+  private async loadGLTFAnime(path: string): Promise<{ model: THREE.Group; mixer: THREE.AnimationMixer }> {
+    const loader = new GLTFLoader();
+
+    return new Promise((resolve, reject) => {
+      loader.load(
+        path,
+        (gltf) => {
+          const model = gltf.scene;
+          model.scale.set(0.1, 0.1, 0.1);
+
+          if (!gltf.animations || gltf.animations.length === 0) {
+            reject(new Error('Le GLTF ne contient pas d’animations'));
+            return;
+          }
+
+          const mixer = new THREE.AnimationMixer(model);
+
+          gltf.animations.forEach((clip) => {
+            mixer.clipAction(clip).play();
+          });
+
+          resolve({ model, mixer });
+        },
+        undefined,
+        (error) => reject(error)
+      );
+    });
+  }
 
 
 

@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
-import { MainVisualizer } from './component/VisualisationAudio/main-visualizer/main-visualizer';
+import { Scene } from './component/Principal/scene/scene';
 
 export const routes: Routes = [
-    {path:"VisualisationAudio", component : MainVisualizer}
+    {path:"principal", component : Scene}
 ];

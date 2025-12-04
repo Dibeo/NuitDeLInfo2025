@@ -1,6 +1,7 @@
 import { Component, ElementRef, ViewChild, AfterViewInit, Input } from '@angular/core';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 
 @Component({
   selector: 'app-scene',
@@ -23,7 +24,8 @@ export class Scene implements AfterViewInit {
   private renderer!: THREE.WebGLRenderer;
   private scene!: THREE.Scene;
 
-  private gltfMesh!: THREE.Group;
+  private landscapeGLTF!: THREE.Group;
+  private treeGLTF!: THREE.Group;
   private movingGLTF: THREE.Group[] = [];
 
 
@@ -46,14 +48,13 @@ export class Scene implements AfterViewInit {
 
     this.canvas.addEventListener('click', (event) => this.onClick(event), false);
 
-
+    // Usage
+    this.loadGLTFModel('assets/Principal/landcape/voxel_landscape.glb')
+    .then(obj => this.landscapeGLTF = obj);
     this.loadGLTFModel('assets/Principal/tree/voxel_tutorial_-_scene_2.glb')
-      .then(() => {
-        this.startRenderingLoop();
-      })
-      .catch((error) => {
-        console.error('Erreur lors du chargement du modèle GLB:', error);
-      });
+    .then(obj => this.treeGLTF = obj)
+    .then(() => this.startRenderingLoop());
+
   }
 
   // ---------------------------------- Scene ----------------------------------------------------
@@ -76,8 +77,16 @@ export class Scene implements AfterViewInit {
     const cube = new THREE.Mesh(geometry, material);
     this.scene.add(cube);
     cube.position.set(0, -2, 2);
-    cube.scale.z = 500;
+    cube.scale.z = 5000;
     cube.scale.x = 5;
+
+    //HDRI
+    const loader = new RGBELoader();
+    loader.load('assets/Principal/HDRI/HDR_rich_blue_nebulae_2.hdr', (texture) => {
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+      this.scene.background = texture;
+      this.scene.environment = texture;
+    });
 
 
     // Lumières pour éclairer correctement le modèle
@@ -91,28 +100,21 @@ export class Scene implements AfterViewInit {
 
 
 
-  private async loadGLTFModel(path: string): Promise<void> {
-    const loader = new GLTFLoader();
-
-    return new Promise((resolve, reject) => {
-      loader.load(
-        path,
-        (gltf) => {
-          this.gltfMesh = gltf.scene; // l'objet chargé
-          this.gltfMesh.scale.set(1, 1, 1);
-          this.scene.add(this.gltfMesh);
-          this.gltfMesh.position.z = 100;
-          resolve();
-        },
-        undefined,
-        (error) => {
-          console.error('Error loading GLTF/GLB file:', error);
-          reject(error);
-        }
-      );
-    });
-  }
-
+  private async loadGLTFModel(path: string): Promise<THREE.Group> {
+  const loader = new GLTFLoader();
+  return new Promise((resolve, reject) => {
+    loader.load(
+      path,
+      (gltf) => {
+        const obj = gltf.scene;
+        obj.scale.set(1, 1, 1);
+        resolve(obj);
+      },
+      undefined,
+      (error) => reject(error)
+    );
+  });
+}
 
 
 
@@ -131,7 +133,7 @@ export class Scene implements AfterViewInit {
 
   private startSpawningGLTF(): void {
     setInterval(() => {
-      if (this.gltfMesh && this.movingGLTF.length < 30) {
+      if (this.treeGLTF && this.movingGLTF.length < 30) {
         this.spawnMovingGLTF();
       }
     }, 1000);
@@ -180,10 +182,11 @@ export class Scene implements AfterViewInit {
 
 
   private spawnMovingGLTF(): void {
-    if (!this.gltfMesh) return;
+    if (!this.treeGLTF || !this.treeGLTF) return;
 
     // Clone en profondeur
-    const clone = this.gltfMesh.clone(true);
+    const clone1 = this.treeGLTF.clone(true);
+    const clone2 = this.landscapeGLTF.clone(true);
 
     // Position aléatoire comme pour les cubes
     let x: number;
@@ -193,14 +196,18 @@ export class Scene implements AfterViewInit {
       x = THREE.MathUtils.randFloat(5, 10);
     }
 
-    clone.position.set(x, -5, -50);
+    clone1.position.set(x, -5, -50);
+    clone2.position.set(x, -5, -50);
 
     // Optionnel : scale aléatoire
     const scale = THREE.MathUtils.randFloat(0.5, 2);
-    clone.scale.set(scale, scale, scale);
+    clone1.scale.set(scale, scale, scale);
+    clone2.scale.set(0.15, 0.15, 0.15);
 
-    this.scene.add(clone);
-    this.movingGLTF.push(clone);
+    this.scene.add(clone1);
+    this.movingGLTF.push(clone1);
+    this.scene.add(clone2);
+    this.movingGLTF.push(clone2);
 
   }
 }

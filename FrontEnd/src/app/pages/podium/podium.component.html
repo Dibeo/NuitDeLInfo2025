@@ -1,1 +1,41 @@
-<canvas #chart></canvas>
+<div class="podium-card">
+    <div class="card-header">
+        <h2>🏆 Classement Global</h2>
+        <span class="live-badge">En direct</span>
+    </div>
+
+    <div class="chart-wrapper">
+        <canvas #chart></canvas>
+    </div>
+
+    <!-- Résumé du Top 3 (Optionnel, pour la lisibilité) -->
+    @if (users.length > 0) {
+    <div class="top-list">
+
+        @if (users[0]) {
+        <div class="top-item gold">
+            <span class="rank">1</span>
+            <span class="user-id">{{ users[0].id }}</span>
+            <span class="xp">{{ users[0].xp }} XP</span>
+        </div>
+        }
+
+        @if (users[1]) {
+        <div class="top-item silver">
+            <span class="rank">2</span>
+            <span class="user-id">{{ users[1].id }}</span>
+            <span class="xp">{{ users[1].xp }} XP</span>
+        </div>
+        }
+
+        @if (users[2]) {
+        <div class="top-item bronze">
+            <span class="rank">3</span>
+            <span class="user-id">{{ users[2].id }}</span>
+            <span class="xp">{{ users[2].xp }} XP</span>
+        </div>
+        }
+
+    </div>
+    }
+</div>

@@ -25,9 +25,15 @@ export class Scene implements AfterViewInit {
 
   private gltfMesh!: THREE.Group;
 
+
+  private raycaster = new THREE.Raycaster();
+  private mouse = new THREE.Vector2();
+
   private get canvas(): HTMLCanvasElement {
     return this.canvasRef.nativeElement;
   }
+
+  // ---------------------------------- Init -----------------------------------------------------
 
   ngAfterViewInit(): void {
     // Création de la scène et chargement du modèle 3D
@@ -37,6 +43,7 @@ export class Scene implements AfterViewInit {
     this.startRenderingLoop();
     this.startSpawningCubes();
 
+    this.canvas.addEventListener('click', (event) => this.onClick(event), false);
     window.addEventListener('resize', () => this.onWindowResize(), false);
 
 
@@ -138,11 +145,19 @@ export class Scene implements AfterViewInit {
     const cube = new THREE.Mesh(geometry, material);
 
     // Placement aléatoire sur un large axe X et Y
+    let x: number;
+    if (Math.random() < 0.5) {
+      x = THREE.MathUtils.randFloat(-10, -5);
+    } else {
+      x = THREE.MathUtils.randFloat(5, 10);
+    }
     cube.position.set(
-      THREE.MathUtils.randFloat(-10, 10), // gauche/droite
-      THREE.MathUtils.randFloat(-5, 5),   // haut/bas
+      x, // gauche/droite
+      0,   // haut/bas
       -50                                  // loin devant caméra
     );
+
+    cube.scale.y = 10;
 
     this.scene.add(cube);
     this.movingCubes.push(cube);
@@ -178,5 +193,30 @@ export class Scene implements AfterViewInit {
 
     // Mettre à jour le renderer
     this.renderer.setSize(width, height);
+  }
+
+  private onClick(event: MouseEvent): void {
+    // Coordonnées normalisées (-1 à +1) pour Three.js
+    const rect = this.canvas.getBoundingClientRect();
+    this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    // Mettre à jour le raycaster depuis la caméra
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+
+    // Vérifier les intersections avec tous les cubes (ou objets cliquables)
+    const intersects = this.raycaster.intersectObjects(this.movingCubes, true);
+
+
+    if (intersects.length > 0) {
+      const clickedObject = intersects[0].object;
+      //Clique sur le cube
+      if ((clickedObject as THREE.Mesh).isMesh) {
+        const mesh = clickedObject as THREE.Mesh;
+        (mesh.material as THREE.MeshStandardMaterial).color.set(0xffffff);
+      }
+
+
+    }
   }
 }

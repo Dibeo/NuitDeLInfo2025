@@ -1,4 +1,0 @@
-[build]
-  base = "FrontEnd"
-  command = "npm run build -- --configuration production"
-  publish = "dist/FrontEnd"

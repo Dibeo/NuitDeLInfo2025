@@ -221,6 +221,7 @@ export class MainVisualizer implements OnInit, AfterViewInit {
 
   private async askForAudio(): Promise<void> {
     const { value: file } = await Swal.fire({
+      position: "top-start",
       title: 'Choisissez un fichier audio',
       input: 'file',
       inputAttributes: { accept: 'audio/*' },
@@ -305,16 +306,18 @@ export class MainVisualizer implements OnInit, AfterViewInit {
     this.renderer.setClearColor(0x05051a, 1);
 
     const resize = () => {
-      const width = this.canvas.clientWidth;
-      const height = this.canvas.clientHeight;
+  const width = window.innerWidth;
+  const height = window.innerHeight;
 
-      this.camera.aspect = width / height;
-      this.camera.updateProjectionMatrix();
-      this.renderer.setSize(width, height);
-    };
+  this.camera.aspect = width / height;
+  this.camera.updateProjectionMatrix();
 
-    window.addEventListener('resize', resize);
-    resize();
+  this.renderer.setSize(width, height);
+  this.renderer.setPixelRatio(window.devicePixelRatio);
+};
+
+window.addEventListener('resize', resize);
+resize();
 
     const render = () => {
       requestAnimationFrame(render);

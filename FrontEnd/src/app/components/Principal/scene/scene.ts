@@ -38,7 +38,9 @@ export class Scene implements AfterViewInit {
   private treeGLTF!: THREE.Group;
   private movingGLTF: THREE.Object3D[] = [];
 
-  private textMesh!: THREE.Object3D;
+  private textQuestion!: THREE.Object3D;
+  private textAnswer1!: THREE.Object3D;
+  private textAnswer2!: THREE.Object3D;
 
   //controller
   private controller: QuizController = new QuizController();
@@ -129,10 +131,22 @@ export class Scene implements AfterViewInit {
 
     // Charger une police
 
-    const txt: string = this.controller.getQuestion();
+    let txt: string = this.controller.getQuestion();
     this.LoadText(this.controller.getQuestion()).then(group => {
-      this.textMesh = group;
+      this.textQuestion = group;
+      this.textQuestion.position.set(this.cube1.position.x, this.cube1.position.y + 1.5 , this.cube1.position.z);
     });
+    txt = this.controller.getAnswers()[0];
+    this.LoadText(this.controller.getQuestion()).then(group => {
+      this.textAnswer1 = group;
+      this.textAnswer1.position.set(this.cube1.position.x, this.cube1.position.y, this.cube1.position.z + 1 );
+    });
+    txt = this.controller.getAnswers()[1];
+    this.LoadText(this.controller.getQuestion()).then(group => {
+      this.textAnswer2 = group;
+      this.textAnswer2.position.set(this.cube2.position.x, this.cube2.position.y, this.cube2.position.z + 1);
+    });
+
 
     this.loadGLTFModel('assets/Principal/Sol/scene1.glb')
     .then(obj => {
@@ -281,7 +295,6 @@ private startRenderingLoop(): void {
             textGroup.add(mesh);
           });
 
-          textGroup.position.set(this.cube1.position.x, this.cube1.position.y + 1, this.cube1.position.z);
           this.scene.add(textGroup);
           resolve(textGroup);
         },
@@ -428,7 +441,9 @@ private updateMovingGLTF(deltaZ: number = 0, deltaTexture: number = 0): void {
       }
     }
 
-    this.textMesh.position.set(this.cube1.position.x, this.cube1.position.y + 1.5, this.cube1.position.z);
+    this.textQuestion.position.set(this.cube1.position.x, this.cube1.position.y + 1.5 , this.cube1.position.z);
+    this.textAnswer1.position.set(this.cube1.position.x, this.cube1.position.y, this.cube1.position.z + 1 );
+    this.textAnswer2.position.set(this.cube2.position.x, this.cube2.position.y, this.cube2.position.z + 1);
 
 
     if (deltaTexture !== 0) {

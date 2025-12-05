@@ -27,7 +27,7 @@ jobs:
         working-directory: ./FrontEnd
 
       - name: Build Angular project
-        run: npm run build -- --base-href=/repo-name/
+        run: npm run build -- --base-href=/NuitDeLInfo/
         working-directory: ./FrontEnd
 
       - name: Deploy to GitHub Pages

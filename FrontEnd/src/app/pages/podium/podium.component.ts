@@ -8,13 +8,12 @@ import {
 } from '@angular/core';
 import UserProgressRepository, { User } from '../../../core/UserProgressAPI/UserProgressRepository';
 import Chart from 'chart.js/auto';
-import { XpBar } from '../../components/xp-bar/xp-bar';
 
 const FETCH_WAIT_TIME: number = 2000;
 
 @Component({
   selector: 'app-podium',
-  imports: [XpBar],
+  imports: [],
   templateUrl: './podium.component.html',
   styleUrl: './podium.component.css',
 })
@@ -63,7 +62,7 @@ export class PodiumComponent implements OnInit, OnDestroy {
     if (!this.chartElement || !this.users.length) return;
 
     if (this.chartInstance) {
-      const labels = this.users.map((u) => (u.id === this._guestId ? 'Toi' : u.name));
+      const labels = this.users.map((u) => (u.id === this._guestId ? `${u.name} (Toi)` : u.name));
       const data = this.users.map((u) => u.xp);
 
       const backgroundColors = this.users.map((_, index) => this.getBackGroundColor(index));
@@ -87,7 +86,7 @@ export class PodiumComponent implements OnInit, OnDestroy {
   }
 
   private createChart(): void {
-    const labels = this.users.map((u) => (u.id === this._guestId ? 'Toi' : u.name));
+    const labels = this.users.map((u) => (u.id === this._guestId ? `${u.name} (Toi)` : u.name));
     const data = this.users.map((u) => u.xp);
 
     const backgroundColors = this.users.map((_, index) => this.getBackGroundColor(index));

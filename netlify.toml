@@ -2,3 +2,11 @@
   base = "FrontEnd"
   command = "npm run build -- --configuration production"
   publish = "dist/FrontEnd"
+
+[build.environment]
+  NODE_VERSION = "22.12"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -26,8 +26,8 @@ export class Scene implements AfterViewInit {
   private movingCubes: THREE.Mesh[] = [];
   private cubeSpeed = 0;  // vitesse d’approche
 
-  private cube1!: THREE.Mesh;
-  private cube2!: THREE.Mesh;
+  private sign1!: THREE.Group;
+  private sign2!: THREE.Group;
 
   private camera!: THREE.PerspectiveCamera;
   private renderer!: THREE.WebGLRenderer;
@@ -38,9 +38,9 @@ export class Scene implements AfterViewInit {
   private treeGLTF!: THREE.Group;
   private movingGLTF: THREE.Object3D[] = [];
 
-  private textQuestion!: THREE.Object3D;
-  private textAnswer1!: THREE.Object3D;
-  private textAnswer2!: THREE.Object3D;
+  private textQuestion!: THREE.Group;
+  private textAnswer1!: THREE.Group;
+  private textAnswer2!: THREE.Group;
 
   //controller
   private controller: QuizController = new QuizController();
@@ -71,14 +71,15 @@ export class Scene implements AfterViewInit {
 
     // Appel initial pour que le canvas prenne tout l'écran
 
-    // Usage
-    this.loadGLTFModel('assets/Principal/landcape/voxel_landscape.glb')
-    .then(obj => this.landscapeGLTF = obj);
-    this.loadGLTFModel('assets/Principal/tree/voxel_tutorial_-_scene_2.glb')
-    .then(obj => this.treeGLTF = obj)
-    .then(() => this.startRenderingLoop());
-
-    this.startSpawningGLTF();
+    Promise.all([
+      this.loadGLTFModel('assets/Principal/landcape/voxel_landscape.glb'),
+      this.loadGLTFModel('assets/Principal/tree/voxel_tutorial_-_scene_2.glb')
+    ]).then(([landscape, tree]) => {
+      this.landscapeGLTF = landscape;
+      this.treeGLTF = tree;
+      this.startRenderingLoop();
+      this.startSpawningGLTF();
+    });
 
     this.onWindowResize();
 
@@ -107,18 +108,17 @@ export class Scene implements AfterViewInit {
     const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
 
 
-    this.cube1 = new THREE.Mesh(geometry, material);
-    this.scene.add(this.cube1);
-    this.cube1.position.set(-1, 0, -20);
-    this.cube1.scale.set(1,1,1);
+    /*this.sign1 = new THREE.Mesh(geometry, material);
+    this.scene.add(this.sign1);
+    this.sign1.position.set(-1, 0, -20);
+    this.sign1.scale.set(1,1,1);
 
-    this.cube2 = new THREE.Mesh(geometry, material);
-    this.scene.add(this.cube2);
-    this.cube2.position.set(1, 0, -20);
-    this.cube2.scale.set(1,1,1);
-
+    this.sign2 = new THREE.Mesh(geometry, material);
+    this.scene.add(this.sign2);
+    this.sign2.position.set(1, 0, -20);
+    this.sign2.scale.set(1,1,1);
+    */
     // Les ajouter à movingGLTF pour avancer avec le scroll
-    this.movingGLTF.push(this.cube1, this.cube2);
 
 
     //HDRI
@@ -131,21 +131,7 @@ export class Scene implements AfterViewInit {
 
     // Charger une police
 
-    let txt: string = this.controller.getQuestion();
-    this.LoadText(this.controller.getQuestion()).then(group => {
-      this.textQuestion = group;
-      this.textQuestion.position.set(this.cube1.position.x, this.cube1.position.y + 1.5 , this.cube1.position.z);
-    });
-    txt = this.controller.getAnswers()[0];
-    this.LoadText(this.controller.getQuestion()).then(group => {
-      this.textAnswer1 = group;
-      this.textAnswer1.position.set(this.cube1.position.x, this.cube1.position.y, this.cube1.position.z + 1 );
-    });
-    txt = this.controller.getAnswers()[1];
-    this.LoadText(this.controller.getQuestion()).then(group => {
-      this.textAnswer2 = group;
-      this.textAnswer2.position.set(this.cube2.position.x, this.cube2.position.y, this.cube2.position.z + 1);
-    });
+
 
 
     this.loadGLTFModel('assets/Principal/Sol/scene1.glb')
@@ -156,6 +142,51 @@ export class Scene implements AfterViewInit {
       this.solGLTF.scale.set(2, 2, 2.5);
       this.scene.add(this.solGLTF);
     });
+
+
+    this.loadGLTFModel('assets/Principal/signboard/signboard.gltf')
+    .then(obj => {
+      this.sign1 = obj;
+      this.sign1.position.set(-2.1, -1.5, -20);
+      this.sign1.rotation.set(0, 0, 0);
+      this.sign1.scale.set(0.1, 0.1, 0.1);
+      this.scene.add(this.sign1);
+      this.movingGLTF.push(this.sign1);
+
+      this.sign2 = obj;
+      this.sign2.position.set(2.1, -1.5, -20);
+      this.sign2.rotation.set(0, 0, 0);
+      this.sign2.scale.set(0.1, 0.1, 0.1);
+      this.scene.add(this.sign2);
+      this.movingGLTF.push(this.sign2);
+
+      // Texte question et réponses liées à Question
+      let txt: string = this.controller.getQuestion();
+      console.log(txt);
+      this.LoadText(txt).then(group => {
+        this.textQuestion = group;
+        this.textQuestion.position.set(this.sign1.position.x, this.sign1.position.y + 1.5, this.sign1.position.z);
+        this.scene.add(this.textQuestion);
+      });
+
+      // Texte réponse liée à sign2
+      txt = this.controller.getAnswers()[1];
+      console.log(txt);
+      this.LoadText(txt).then(group => {
+        this.textAnswer2 = group;
+        this.textAnswer2.position.set(this.sign2.position.x, this.sign2.position.y, this.sign2.position.z + 1);
+        this.scene.add(this.textAnswer2);
+      });
+
+      txt = this.controller.getAnswers()[0];
+      console.log(txt);
+      this.LoadText(txt).then(group => {
+        this.textAnswer1 = group;
+        this.textAnswer1.position.set(this.sign1.position.x, this.sign1.position.y, this.sign1.position.z + 1);
+        this.scene.add(this.textAnswer1);
+      });
+    });
+
 
     //animations
     this.loadGLTFAnime('assets/Principal/poule/crazycock_character_low_poly_animated.glb')
@@ -275,7 +306,8 @@ private startRenderingLoop(): void {
 }
 
 
-  private LoadText(txt: string): Promise<THREE.Object3D> {
+
+  private LoadText(txt: string = "Texte manquant"): Promise<THREE.Group> {
     return new Promise((resolve, reject) => {
       const loader = new FontLoader();
       loader.load(
@@ -295,8 +327,7 @@ private startRenderingLoop(): void {
             textGroup.add(mesh);
           });
 
-          this.scene.add(textGroup);
-          resolve(textGroup);
+          resolve(textGroup); // renvoie un THREE.Group
         },
         undefined,
         (err) => reject(err)
@@ -317,8 +348,8 @@ private startRenderingLoop(): void {
     let result: boolean = false;
 
     // Tester séparément les deux cubes
-    const intersectsRight = this.raycaster.intersectObjects([this.cube1], true);
-    const intersectsLeft = this.raycaster.intersectObjects([this.cube2], true);
+    const intersectsRight = this.raycaster.intersectObjects([this.sign1], true);
+    const intersectsLeft = this.raycaster.intersectObjects([this.sign2], true);
 
     if (intersectsRight.length > 0) {
       const mesh = intersectsRight[0].object as THREE.Mesh;
@@ -433,7 +464,7 @@ private updateMovingGLTF(deltaZ: number = 0, deltaTexture: number = 0): void {
       obj.position.z += deltaZ;
 
       // Ne supprimer que les arbres et paysages, pas les cubes si besoin
-      if (obj !== this.cube1 && obj !== this.cube2) {
+      if (obj !== this.sign1 && obj !== this.sign2) {
         if (obj.position.z > this.camera.position.z + 3) {
           this.scene.remove(obj);
           this.movingGLTF.splice(i, 1);
@@ -441,9 +472,9 @@ private updateMovingGLTF(deltaZ: number = 0, deltaTexture: number = 0): void {
       }
     }
 
-    this.textQuestion.position.set(this.cube1.position.x, this.cube1.position.y + 1.5 , this.cube1.position.z);
-    this.textAnswer1.position.set(this.cube1.position.x, this.cube1.position.y, this.cube1.position.z + 1 );
-    this.textAnswer2.position.set(this.cube2.position.x, this.cube2.position.y, this.cube2.position.z + 1);
+    this.textQuestion.position.set(this.sign1.position.x, this.sign1.position.y + 1.5 , this.sign1.position.z);
+    this.textAnswer1.position.set(this.sign1.position.x, this.sign1.position.y, this.sign1.position.z + 1 );
+    this.textAnswer2.position.set(this.sign2.position.x, this.sign2.position.y, this.sign2.position.z + 1);
 
 
     if (deltaTexture !== 0) {
@@ -456,8 +487,11 @@ private updateMovingGLTF(deltaZ: number = 0, deltaTexture: number = 0): void {
   private setupControls(): void {
     window.addEventListener('wheel', (event: WheelEvent) => {
       // Vérification : si les cubes sont au-delà de -5, aucun mouvement n’est appliqué
-      if (this.cube1.position.z > -0.5) return;
 
+      if (this.sign1) {
+
+        if (this.sign1.position.z > -0.5) return;
+      }
       const direction = event.deltaY < 0 ? 1 : -1;
       this.updateMovingGLTF(direction * this.advanceDistance, direction * 0.03);
     });
@@ -465,7 +499,9 @@ private updateMovingGLTF(deltaZ: number = 0, deltaTexture: number = 0): void {
     window.addEventListener('keydown', (event: KeyboardEvent) => {
       if (event.key === 'ArrowUp') {
         // Vérification identique pour les touches
-        if (this.cube1.position.z > -5) return;
+        if (this.sign1) {
+          if (this.sign1.position.z > -5) return;
+        }
 
         this.updateMovingGLTF(this.advanceDistance, 0.01);
       }

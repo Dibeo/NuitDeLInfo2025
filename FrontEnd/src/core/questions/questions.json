@@ -1,9 +1,5 @@
 [
   {
-    "b": "Car les écrans sont devenus noirs et blancs",
-    "correctAnswer": "a"
-  },
-  {
     "question": "Pourtant, ces ordinateurs\nfonctionnent encore physiquement !\nComment appelle-t-on le\nfait de devoir\njeter un appareil\nqui marche juste\nà cause du logiciel ?",
     "a": "L'obsolescence programmée (ou logicielle)",
     "b": "La malchance technologique",

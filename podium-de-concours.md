@@ -1,8 +1,6 @@
 # Défi : Podium de Concours – Gamification Full-Stack
 
-Ce projet répond au défi « Podium de concours ». Il s’agit d’une sous-application intégrée visant à gamifier l’expérience des participants grâce à un système de progression en temps réel, visualisable via des interfaces 2D et 3D.
-
-_(Aperçu de la scène 3D générée avec Three.js)_
+Ce projet répond au défi « Podium de concours ». Il s’agit d’une sous-application intégrée visant à gamifier l’expérience des participants grâce à un système de progression en temps réel, visualisable via une interface 2D.
 
 ## 🎯 Objectif du Projet
 
@@ -14,7 +12,6 @@ Créer une interface dynamique permettant de gérer et visualiser la progression
 
 -   **Gamification instantanée** : gain d’XP en répondant à des questions sur l’interface principale.
 -   **Identité ludique semi-anonyme** : génération d’un ID unique associé à un nom d’animal (ex. _Écureuil Furtif_, _Panda Endormi_) via un hachage serveur.
--   **Visualisation 3D immersive** : podium Three.js avec gestion des ombres, éclairage dynamique et barres évolutives.
 -   **Tableau de bord analytique** : graphique en barres via Chart.js pour comparer facilement les scores.
 -   **Mise à jour temps réel** : polling régulier du backend pour rafraîchir les classements sans rechargement.
 
@@ -80,3 +77,6 @@ cd FrontEnd
 npm install
 npm run start
 ```
+
+Lien vers la page principale : http://localhost:4200
+Lien vers le classement : http://localhost:4200/podium

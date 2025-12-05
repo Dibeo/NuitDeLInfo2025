@@ -61,26 +61,22 @@ export class MainVisualizer implements OnInit, AfterViewInit {
     this.createScene();
     await this.initAudio();
 
-    // Chemin du modèle
     const dragonModelPath = 'assets/VisualisationAudio/fire_dragon_minecraft/scene.gltf';
-
-    // 1) on essaye d'abord d'utiliser ton ModelLoaderService si tu veux (s'il renvoie animations)
-    // 2) sinon on tombe back to GLTFLoader pour s'assurer d'avoir animations + mixer
     try {
-      // Essayer ModelLoaderService si tu veux garder son comportement — mais on vérifie animations
-      const maybeObj = await ModelLoaderService.loadGLTFModel(dragonModelPath, [], 20).catch(() => null);
+      const maybeObj = await ModelLoaderService.loadGLTFModel(dragonModelPath, [], 20).catch(
+        () => null
+      );
 
       if (maybeObj && (maybeObj as any).animations && (maybeObj as any).animations.length > 0) {
-        // ModelLoaderService a renvoyé quelque chose avec animations
         this.objMesh = maybeObj as any;
         this.scene.add(this.objMesh);
         this.modelName.set('Dragon (chargé via ModelLoaderService)');
         this.setupAnimationsFromObject(this.objMesh as any);
       } else {
-        // Fallback : charger directement avec GLTFLoader pour garantir les animations
         const result = await this.loadGLTFWithAnimations(dragonModelPath, 20);
         this.objMesh = result.model;
         this.animations = result.animations;
+        this.objMesh.rotation.y = 11;
         this.scene.add(this.objMesh);
         this.modelName.set('Dragon (chargé via GLTFLoader)');
         this.setupAnimationsFromClips(this.objMesh, this.animations);
@@ -128,13 +124,14 @@ export class MainVisualizer implements OnInit, AfterViewInit {
     audioElement.src = URL.createObjectURL(file as File);
     audioElement.load();
 
-    // connect audio graph
     const source = this.audioContext!.createMediaElementSource(audioElement);
     source.connect(this.analyser!);
     this.analyser!.connect(this.audioContext!.destination);
 
     await audioElement.play().catch(() => {
-      console.warn('Lecture automatique bloquée. L’utilisateur devra cliquer pour démarrer l’audio.');
+      console.warn(
+        'Lecture automatique bloquée. L’utilisateur devra cliquer pour démarrer l’audio.'
+      );
     });
 
     this.isAudioReady.set(true);
@@ -151,7 +148,7 @@ export class MainVisualizer implements OnInit, AfterViewInit {
     this.analyser.getByteFrequencyData(this.frequencyData);
     let sum = 0;
     for (let i = 0; i < this.frequencyData.length; i++) sum += this.frequencyData[i];
-    return (sum / this.frequencyData.length) / 255;
+    return sum / this.frequencyData.length / 255;
   }
 
   private createScene(): void {
@@ -174,16 +171,18 @@ export class MainVisualizer implements OnInit, AfterViewInit {
   }
 
   private async createPlanet(): Promise<void> {
-    const planetModelPath = 'assets/VisualisationAudio/lava_planet/scene.gltf';
+    const planetModelPath = 'assets/VisualisationAudio/planet/scene.gltf';
 
     try {
-      const planet = await ModelLoaderService.loadGLTFModel(planetModelPath);
+      const planet = await ModelLoaderService.loadGLTFModel(planetModelPath, [], 1);
       this.planetMesh = planet;
-      this.planetMesh.scale.set(10, 10, 10);
       this.planetMesh.position.set(0, -100, -200);
       this.scene.add(this.planetMesh);
     } catch (error) {
-      console.warn('Erreur lors du chargement du modèle de planète, création d’une sphère par défaut.', error);
+      console.warn(
+        'Erreur lors du chargement du modèle de planète, création d’une sphère par défaut.',
+        error
+      );
       const geometry = new THREE.SphereGeometry(60, 32, 32);
       const material = new THREE.MeshStandardMaterial({
         color: 0x3d9d69,
@@ -228,9 +227,7 @@ export class MainVisualizer implements OnInit, AfterViewInit {
     this.scene.add(this.objMesh);
   }
 
-  // ----- animations helpers -----
   private setupAnimationsFromObject(obj: any) {
-    // si ModelLoaderService a placé animations sur l'objet
     const animations: THREE.AnimationClip[] = (obj as any).animations || [];
     this.setupAnimationsFromClips(obj, animations);
   }
@@ -241,13 +238,15 @@ export class MainVisualizer implements OnInit, AfterViewInit {
     this.mixer = new THREE.AnimationMixer(obj);
     this.animations = clips;
 
-    // play first clip
     this.currentAnimationIndex = 0;
     this.currentAction = this.mixer.clipAction(this.animations[this.currentAnimationIndex]);
     this.currentAction.play();
   }
 
-  private loadGLTFWithAnimations(path: string, scale = 1): Promise<{ model: THREE.Group; animations: THREE.AnimationClip[] }> {
+  private loadGLTFWithAnimations(
+    path: string,
+    scale = 1
+  ): Promise<{ model: THREE.Group; animations: THREE.AnimationClip[] }> {
     const loader = new GLTFLoader();
     return new Promise((resolve, reject) => {
       loader.load(
@@ -263,39 +262,40 @@ export class MainVisualizer implements OnInit, AfterViewInit {
     });
   }
 
-  // extrait fréquences (bass/treble)
   private getFrequencyRangeLevel(startBin: number, endBin: number): number {
     if (!this.isAudioReady() || !this.analyser || !this.frequencyData) return 0;
     let sum = 0;
     const count = Math.max(1, endBin - startBin);
     this.analyser.getByteFrequencyData(this.frequencyData);
-    for (let i = startBin; i < endBin && i < this.frequencyData.length; i++) sum += this.frequencyData[i];
+    for (let i = startBin; i < endBin && i < this.frequencyData.length; i++)
+      sum += this.frequencyData[i];
     return sum / count / 255;
   }
 
   private animateOBJ(): void {
     const delta = this.clock.getDelta();
+    const audioLevel = this.getAudioLevel();
 
     if (this.mixer) this.mixer.update(delta);
 
     if (!this.objMesh || !this.frequencyData) return;
 
-    const bass = this.getFrequencyRangeLevel(0, 20);
-    const treble = this.getFrequencyRangeLevel(60, Math.min(127, this.frequencyData.length));
+    const bass = this.getFrequencyRangeLevel(0, 20); // graves
+    const treble = this.getFrequencyRangeLevel(60, 128); // aigus = hauteur/pitch
 
-    const targetY = (treble - bass) * 30;
-    // lerp position Y
-    this.objMesh.position.y = THREE.MathUtils.lerp(this.objMesh.position.y, targetY, 0.08);
+    // 🎵 Déplacement vertical basé sur la hauteur du son (aigus)
+    const target = treble * 40 - bass * 20; // Ajuste les valeurs pour l’amplitude voulue
 
-    // garder rotation Y fixe (si tu veux animer)
-    this.objMesh.rotation.y = 11;
+    // Lissage du mouvement pour éviter les secousses
+    this.objMesh.rotation.height = THREE.MathUtils.lerp(this.objMesh.rotation.height, target, 0.1);
+    const rotationSpeed = audioLevel * 0.2;
 
     if (this.planetMesh) {
-      this.planetMesh.rotation.z += 0.005;
+      this.planetMesh.rotation.y += rotationSpeed;
     }
 
     this.cloudParticles.forEach((p) => {
-      p.rotation.y -= 0.001;
+      p.rotation.y += rotationSpeed * .2;
       p.rotation.x += 0.0005;
     });
   }

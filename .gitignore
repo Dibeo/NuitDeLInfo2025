@@ -1,13 +1,13 @@
 # See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
 # Compiled output
-FrontEnd/dist
+*/dist
 FrontEnd/tmp
 FrontEnd/out-tsc
 FrontEnd/bazel-out
 
 # Node
-FrontEnd/node_modules
+*/node_modules
 FrontEnd/npm-debug.log
 FrontEnd/yarn-error.log
 
@@ -41,3 +41,6 @@ FrontEnd/__screenshots__/
 # System files
 FrontEnd/.DS_Store
 FrontEnd/Thumbs.db
+
+# BackEndUserProgress
+BackEndUserProgress/*.db

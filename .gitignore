@@ -40,7 +40,10 @@ FrontEnd/__screenshots__/
 
 # System files
 FrontEnd/.DS_Store
+FrontEnd/.vercel
 FrontEnd/Thumbs.db
 
 # BackEndUserProgress
 BackEndUserProgress/*.db
+
+.env.local

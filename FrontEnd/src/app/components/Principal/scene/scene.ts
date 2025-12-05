@@ -2,9 +2,15 @@ import { Component, ElementRef, ViewChild, AfterViewInit, Input } from '@angular
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
+import QuizController from '../../../../core/questions/QuizController.js';
+import { XpBar } from '../../xp-bar/xp-bar.js';
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
+
 
 @Component({
   selector: 'app-scene',
+  imports: [XpBar],
   templateUrl: './scene.html',
   styleUrls: ['./scene.css'],
 })
@@ -20,8 +26,8 @@ export class Scene implements AfterViewInit {
   private movingCubes: THREE.Mesh[] = [];
   private cubeSpeed = 0;  // vitesse d’approche
 
-  private cube1!: THREE.Mesh;
-  private cube2!: THREE.Mesh;
+  private sign1!: THREE.Group;
+  private sign2!: THREE.Group;
 
   private camera!: THREE.PerspectiveCamera;
   private renderer!: THREE.WebGLRenderer;
@@ -32,6 +38,13 @@ export class Scene implements AfterViewInit {
   private treeGLTF!: THREE.Group;
   private movingGLTF: THREE.Object3D[] = [];
 
+  private textQuestion!: THREE.Group;
+  private textAnswer1!: THREE.Group;
+  private textAnswer2!: THREE.Group;
+
+  private poule!: THREE.Group;
+  //controller
+  private controller: QuizController = new QuizController();
 
   private raycaster = new THREE.Raycaster();
   private mouse = new THREE.Vector2();
@@ -55,15 +68,21 @@ export class Scene implements AfterViewInit {
 
     this.canvas.addEventListener('click', (event) => this.onClick(event), false);
 
-    // Usage
-    this.loadGLTFModel('assets/Principal/landcape/voxel_landscape.glb')
-    .then(obj => this.landscapeGLTF = obj);
-    this.loadGLTFModel('assets/Principal/tree/voxel_tutorial_-_scene_2.glb')
-    .then(obj => this.treeGLTF = obj)
-    .then(() => this.startRenderingLoop());
+    window.addEventListener('resize', () => this.onWindowResize(), false);
 
-    this.startSpawningGLTF();
+    // Appel initial pour que le canvas prenne tout l'écran
 
+    Promise.all([
+      this.loadGLTFModel('assets/Principal/landcape/voxel_landscape.glb'),
+      this.loadGLTFModel('assets/Principal/tree/voxel_tutorial_-_scene_2.glb')
+    ]).then(([landscape, tree]) => {
+      this.landscapeGLTF = landscape;
+      this.treeGLTF = tree;
+      this.startRenderingLoop();
+      this.startSpawningGLTF();
+    });
+
+    this.onWindowResize();
 
   }
 
@@ -80,6 +99,7 @@ export class Scene implements AfterViewInit {
     );
 
     this.camera.position.z = this.cameraZ;
+    this.camera.rotation.x = THREE.MathUtils.degToRad(10);
 
     //this.scene.fog = new THREE.Fog(0x000000, 10, 100);
     this.scene.fog = new THREE.FogExp2(0x2a3d14, 0.02);
@@ -90,27 +110,31 @@ export class Scene implements AfterViewInit {
     const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
 
 
-    this.cube1 = new THREE.Mesh(geometry, material);
-    this.scene.add(this.cube1);
-    this.cube1.position.set(-1, 0, -20);
-    this.cube1.scale.set(1,2,1);
+    /*this.sign1 = new THREE.Mesh(geometry, material);
+    this.scene.add(this.sign1);
+    this.sign1.position.set(-1, 0, -20);
+    this.sign1.scale.set(1,1,1);
 
-    this.cube2 = new THREE.Mesh(geometry, material);
-    this.scene.add(this.cube2);
-    this.cube2.position.set(1, 0, -20);
-    this.cube2.scale.set(1,2,1);
-
+    this.sign2 = new THREE.Mesh(geometry, material);
+    this.scene.add(this.sign2);
+    this.sign2.position.set(1, 0, -20);
+    this.sign2.scale.set(1,1,1);
+    */
     // Les ajouter à movingGLTF pour avancer avec le scroll
-    this.movingGLTF.push(this.cube1, this.cube2);
 
 
     //HDRI
-    /*const loader = new RGBELoader();
-    loader.load('assets/Principal/HDRI/HDR_rich_blue_nebulae_2.hdr', (texture) => {
-      texture.mapping = THREE.EquirectangularReflectionMapping;
-      this.scene.background = texture;
-      this.scene.environment = texture;
-    });*/
+
+  const loader = new THREE.TextureLoader();
+  loader.load('assets/Principal//file-886014965.jpg', (texture) => {
+    texture.mapping = THREE.EquirectangularReflectionMapping;
+    this.scene.background = texture;
+    this.scene.environment = texture;
+  });
+    // Charger une police
+
+
+
 
     this.loadGLTFModel('assets/Principal/Sol/scene1.glb')
     .then(obj => {
@@ -121,10 +145,35 @@ export class Scene implements AfterViewInit {
       this.scene.add(this.solGLTF);
     });
 
+
+
+  this.loadGLTFModel('assets/Principal/signboard/signboard.gltf')
+  .then(obj => {
+    this.sign1 = obj;
+    this.sign1.position.set(-2.1, -1.5, -20);
+    this.sign1.rotation.set(0, 0, 0);
+    this.sign1.scale.set(0.1, 0.1, 0.1);
+    this.scene.add(this.sign1);
+    this.movingGLTF.push(this.sign1);
+
+    this.sign2 = obj.clone(true);
+    this.sign2.position.set(2.1, -1.5, -20);
+    this.sign2.rotation.set(0, 0, 0);
+    this.sign2.scale.set(0.1, 0.1, 0.1);
+    this.scene.add(this.sign2);
+    this.movingGLTF.push(this.sign2);
+
+    this.updateText();
+
+  });
+
+
+
     //animations
     this.loadGLTFAnime('assets/Principal/poule/crazycock_character_low_poly_animated.glb')
       .then(({ model, mixer, animations }) => {
         this.scene.add(model);
+        this.poule = model;
 
         // Choisir le clip original
         const originalClip = animations[0]; // ou celui voulu
@@ -153,6 +202,36 @@ export class Scene implements AfterViewInit {
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
     directionalLight.position.set(0, 1, 1);
     this.scene.add(directionalLight);
+  }
+
+  private updateText(): void {
+    // Texte question
+    this.scene.remove(this.textQuestion);
+    this.scene.remove(this.textAnswer1);
+    this.scene.remove(this.textAnswer2);
+
+    const txtQuestion = this.controller.getQuestion();
+    this.LoadText(txtQuestion).then(group => {
+      this.textQuestion = group;
+      this.textQuestion.position.set(this.sign1.position.x +1 , this.sign1.position.y + 6, this.sign1.position.z);
+      this.scene.add(this.textQuestion);
+    });
+
+    // Texte réponses
+    const txtAnswer1 = this.controller.getAnswers()[0];
+    this.LoadText(txtAnswer1).then(group => {
+      this.textAnswer1 = group;
+      this.textAnswer1.position.set(this.sign1.position.x -1, this.sign1.position.y + 2.5, this.sign1.position.z + 1);
+      this.scene.add(this.textAnswer1);
+    });
+
+    const txtAnswer2 = this.controller.getAnswers()[1];
+    this.LoadText(txtAnswer2).then(group => {
+      this.textAnswer2 = group;
+      this.textAnswer2.position.set(this.sign2.position.x -1, this.sign2.position.y + 2.5, this.sign2.position.z + 1);
+      this.scene.add(this.textAnswer2);
+    });
+
   }
 
   //------------------------------------ Load Model ----------------------------------------------
@@ -215,9 +294,11 @@ export class Scene implements AfterViewInit {
 
 
 private startRenderingLoop(): void {
-    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
-    this.renderer.setPixelRatio(devicePixelRatio);
-    this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
+
+  this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
+  this.renderer.setPixelRatio(window.devicePixelRatio);
+  this.renderer.setSize(window.innerWidth, window.innerHeight);
+
 
     const clock = new THREE.Clock();
 
@@ -238,6 +319,36 @@ private startRenderingLoop(): void {
 
 
 
+  private LoadText(txt: string = "Texte manquant"): Promise<THREE.Group> {
+    return new Promise((resolve, reject) => {
+      const loader = new FontLoader();
+      loader.load(
+        'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/fonts/helvetiker_regular.typeface.json',
+        (font) => {
+          const lines = txt.split('\n');
+          const size = 0.1;
+          const height = 0.01;
+          const spacing = 0.2;
+          const textGroup = new THREE.Group();
+
+          lines.forEach((line, index) => {
+            const geometry = new TextGeometry(line, { font, size, depth: height, curveSegments: 12 });
+            const material = new THREE.MeshStandardMaterial({ color: 0xdddddd });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(0, -index * spacing, 0);
+            textGroup.add(mesh);
+          });
+
+          resolve(textGroup); // renvoie un THREE.Group
+        },
+        undefined,
+        (err) => reject(err)
+      );
+    });
+  }
+
+
+
 
   private onClick(event: MouseEvent): void {
     const rect = this.canvas.getBoundingClientRect();
@@ -246,19 +357,53 @@ private startRenderingLoop(): void {
 
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
+    let result: boolean = false;
+
     // Tester séparément les deux cubes
-    const intersectsRight = this.raycaster.intersectObjects([this.cube1], true);
-    const intersectsLeft = this.raycaster.intersectObjects([this.cube2], true);
+    const intersectsRight = this.raycaster.intersectObjects([this.sign1], true);
+    const intersectsLeft = this.raycaster.intersectObjects([this.sign2], true);
+    const intersectsPoule = this.raycaster.intersectObjects([this.poule], true);
 
     if (intersectsRight.length > 0) {
       const mesh = intersectsRight[0].object as THREE.Mesh;
-      (mesh.material as THREE.MeshStandardMaterial).color.set(0xff0000);
+      if (this.controller.choose('B')) {
+        console.log("B est true");
+        //(mesh.material as THREE.MeshStandardMaterial).color.set(0xff0000);
+        this.sign1.position.z -= 20;
+        this.sign2.position.z -= 20;
+        this.controller.next();
+        this.updateText();
+      }
+      else console.log("Be est false");
 
     }
 
     if (intersectsLeft.length > 0) {
       const mesh = intersectsLeft[0].object as THREE.Mesh;
-      (mesh.material as THREE.MeshStandardMaterial).color.set(0x00ff00);
+      if (this.controller.choose('A')) {
+          //(mesh.material as THREE.MeshStandardMaterial).color.set(0xff0000);
+          console.log("A est true");
+          this.sign1.position.z -= 20;
+          this.sign2.position.z -= 20;
+          this.controller.next();
+          this.updateText();
+      }
+
+      else console.log("A est false");
+    }
+
+    if (intersectsLeft.length > 0) {
+      const mesh = intersectsLeft[0].object as THREE.Mesh;
+      if (this.controller.choose('A')) {
+          //(mesh.material as THREE.MeshStandardMaterial).color.set(0xff0000);
+          console.log("A est true");
+          this.sign1.position.z -= 20;
+          this.sign2.position.z -= 20;
+          this.controller.next();
+          this.updateText();
+      }
+
+      else console.log("A est false");
     }
   }
 
@@ -277,9 +422,9 @@ private startRenderingLoop(): void {
     // Position aléatoire comme pour les cubes
     let x: number;
     if (Math.random() < 0.5) {
-      x = THREE.MathUtils.randFloat(-10, -5);
+      x = THREE.MathUtils.randFloat(-10, -9);
     } else {
-      x = THREE.MathUtils.randFloat(5, 10);
+      x = THREE.MathUtils.randFloat(9, 10);
     }
 
     clone1.position.set(x, -5, THREE.MathUtils.randFloat(2, -50));
@@ -311,9 +456,9 @@ private startRenderingLoop(): void {
     // Position aléatoire comme pour les cubes
     let x: number;
     if (Math.random() < 0.5) {
-      x = THREE.MathUtils.randFloat(-10, -5);
+      x = THREE.MathUtils.randFloat(-10, -8);
     } else {
-      x = THREE.MathUtils.randFloat(5, 10);
+      x = THREE.MathUtils.randFloat(8, 10);
     }
 
     clone1.position.set(x, -5,  -50);
@@ -354,13 +499,19 @@ private updateMovingGLTF(deltaZ: number = 0, deltaTexture: number = 0): void {
       obj.position.z += deltaZ;
 
       // Ne supprimer que les arbres et paysages, pas les cubes si besoin
-      if (obj !== this.cube1 && obj !== this.cube2) {
+      if (obj !== this.sign1 && obj !== this.sign2) {
         if (obj.position.z > this.camera.position.z + 3) {
           this.scene.remove(obj);
           this.movingGLTF.splice(i, 1);
         }
       }
     }
+    if (this.textQuestion && this.textAnswer2 && this.textAnswer1 ) {
+      this.textQuestion.position.set(this.sign1.position.x +1 , this.sign1.position.y + 6, this.sign1.position.z);
+      this.textAnswer1.position.set(this.sign1.position.x -1, this.sign1.position.y + 2.5, this.sign1.position.z + 1);
+      this.textAnswer2.position.set(this.sign2.position.x -1, this.sign2.position.y + 2.5, this.sign2.position.z + 1);
+    }
+
 
     if (deltaTexture !== 0) {
       this.advanceSolTexture(deltaTexture);
@@ -372,8 +523,11 @@ private updateMovingGLTF(deltaZ: number = 0, deltaTexture: number = 0): void {
   private setupControls(): void {
     window.addEventListener('wheel', (event: WheelEvent) => {
       // Vérification : si les cubes sont au-delà de -5, aucun mouvement n’est appliqué
-      if (this.cube1.position.z > -0.5) return;
 
+      if (this.sign1) {
+
+        if (this.sign1.position.z > -3) return;
+      }
       const direction = event.deltaY < 0 ? 1 : -1;
       this.updateMovingGLTF(direction * this.advanceDistance, direction * 0.03);
     });
@@ -381,11 +535,23 @@ private updateMovingGLTF(deltaZ: number = 0, deltaTexture: number = 0): void {
     window.addEventListener('keydown', (event: KeyboardEvent) => {
       if (event.key === 'ArrowUp') {
         // Vérification identique pour les touches
-        if (this.cube1.position.z > -5) return;
+        if (this.sign1) {
+          if (this.sign1.position.z > -5) return;
+        }
 
         this.updateMovingGLTF(this.advanceDistance, 0.01);
       }
     });
+  }
+
+  private onWindowResize(): void {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    this.camera.aspect = width / height;
+    this.camera.updateProjectionMatrix();
+
+    this.renderer.setSize(width, height);
   }
 
 }

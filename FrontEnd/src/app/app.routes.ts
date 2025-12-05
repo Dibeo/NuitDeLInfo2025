@@ -8,7 +8,6 @@ export const routes: Routes = [
   { path: 'podium', component: PodiumComponent },
   { path: 'podium3d', component: PodiumThreeDimension },
   { path: 'principal', component: Scene },
-  { path: 'podium', component: PodiumComponent },
   { path: 'visualisation-audio', component: MainVisualizer },
   { path: '', component: Scene },
 ];

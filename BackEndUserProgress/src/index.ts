@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import Database from "better-sqlite3";
+import NameRepository from "./NameRepository"; // Import du générateur de nom
 
 const app = express();
 const port = 3000;
@@ -11,7 +12,8 @@ app.use(cors());
 
 db.exec(`
     CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY, 
+        id TEXT PRIMARY KEY,
+        name TEXT, 
         xp INTEGER DEFAULT 0
     )
 `);
@@ -27,12 +29,14 @@ app.post("/xp", (req: Request, res: Response) => {
         return;
     }
 
+    const name = NameRepository.getName(userId);
+
     const updateStmt = db.prepare(`
-        INSERT INTO users (id, xp) VALUES (?, ?)
+        INSERT INTO users (id, name, xp) VALUES (?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET xp = xp + excluded.xp
         `);
 
-    updateStmt.run(userId, amount);
+    updateStmt.run(userId, name, amount);
 
     const selectStmt = db.prepare("SELECT xp FROM users WHERE id = ?");
     const row = selectStmt.get(userId) as { xp: number } | undefined;
@@ -48,8 +52,8 @@ app.post("/xp", (req: Request, res: Response) => {
 
 app.get("/xp/all", (req: Request, res: Response) => {
     const allUsers = db
-        .prepare("SELECT id, xp FROM users ORDER BY xp DESC")
-        .all() as { id: string; xp: number }[] | undefined;
+        .prepare("SELECT id, name, xp FROM users ORDER BY xp DESC")
+        .all() as { id: string; name: string; xp: number }[] | undefined;
     res.status(200).json(allUsers || []);
 });
 

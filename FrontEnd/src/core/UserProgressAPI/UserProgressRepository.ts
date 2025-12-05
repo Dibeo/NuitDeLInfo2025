@@ -1,5 +1,11 @@
 import UserProgressAPI from './UserProgressAPI';
 
+export interface User {
+  id: string;
+  name: string;
+  xp: number;
+}
+
 export default class UserProgressRepository {
   public static getUniqueId(): string {
     const STORAGE_KEY = 'temp_guest_id';
@@ -11,7 +17,7 @@ export default class UserProgressRepository {
     return guestId;
   }
 
-  public static async getAll(): Promise<Array<{ id: string; xp: number }>> {
+  public static async getAll(): Promise<Array<User>> {
     const response: Response = await UserProgressAPI.fetch('GET', `/xp/all`);
     const data: any = await response.json();
     return data;

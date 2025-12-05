@@ -1,20 +1,33 @@
-import { Component, ElementRef, ViewChild, OnInit, OnDestroy } from '@angular/core';
-import UserProgressRepository from '../../../core/UserProgressAPI/UserProgressRepository';
+import {
+  Component,
+  ElementRef,
+  ViewChild,
+  OnInit,
+  OnDestroy,
+  ChangeDetectorRef,
+} from '@angular/core';
+import UserProgressRepository, { User } from '../../../core/UserProgressAPI/UserProgressRepository';
 import Chart from 'chart.js/auto';
+import { XpBar } from '../../components/xp-bar/xp-bar';
+
+const FETCH_WAIT_TIME: number = 2000;
 
 @Component({
   selector: 'app-podium',
-  imports: [],
+  imports: [XpBar],
   templateUrl: './podium.component.html',
   styleUrl: './podium.component.css',
 })
 export class PodiumComponent implements OnInit, OnDestroy {
-  private _users: Array<{ id: string; xp: number }> = [];
+  private _guestId: string = UserProgressRepository.getUniqueId();
+  private _users: Array<User> = [];
   private _intervalId: any;
 
   @ViewChild('chart')
   public chartElement!: ElementRef;
   public chartInstance: any = null;
+
+  constructor(private changeDetector: ChangeDetectorRef) {}
 
   public get users() {
     return this._users;
@@ -23,13 +36,14 @@ export class PodiumComponent implements OnInit, OnDestroy {
   public set users(value) {
     this._users = value;
     this.renderChart();
+    this.changeDetector.detectChanges();
   }
 
   public async ngOnInit(): Promise<void> {
     await this.fetchUsers();
     this._intervalId = setInterval(async () => {
       await this.fetchUsers();
-    }, 5000);
+    }, FETCH_WAIT_TIME);
   }
 
   public ngOnDestroy(): void {
@@ -49,7 +63,7 @@ export class PodiumComponent implements OnInit, OnDestroy {
     if (!this.chartElement || !this.users.length) return;
 
     if (this.chartInstance) {
-      const labels = this.users.map((u) => u.id);
+      const labels = this.users.map((u) => (u.id === this._guestId ? 'Toi' : u.name));
       const data = this.users.map((u) => u.xp);
 
       const backgroundColors = this.users.map((_, index) => this.getBackGroundColor(index));
@@ -73,7 +87,7 @@ export class PodiumComponent implements OnInit, OnDestroy {
   }
 
   private createChart(): void {
-    const labels = this.users.map((u) => u.id);
+    const labels = this.users.map((u) => (u.id === this._guestId ? 'Toi' : u.name));
     const data = this.users.map((u) => u.xp);
 
     const backgroundColors = this.users.map((_, index) => this.getBackGroundColor(index));

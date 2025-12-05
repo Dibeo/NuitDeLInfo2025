@@ -4,5 +4,5 @@ import { Scene } from './components/Principal/scene/scene';
 
 export const routes: Routes = [
     { path: 'podium', component: PodiumComponent },
-    {path:"principal", component : Scene}
+    {path:"", component : Scene}
 ];

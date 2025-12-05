@@ -11,11 +11,13 @@ import * as THREE from 'three';
 import Swal from 'sweetalert2';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { ModelLoaderService } from '../../../core/VisualisationAudio/model-loader.service';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-main-visualizer',
   templateUrl: './main-visualizer.html',
   styleUrls: ['./main-visualizer.css'],
+  imports: [FormsModule],
 })
 export class MainVisualizer implements OnInit, AfterViewInit {
   @ViewChild('canvas') private canvasRef!: ElementRef<HTMLCanvasElement>;
@@ -32,7 +34,6 @@ export class MainVisualizer implements OnInit, AfterViewInit {
   public isLoading = signal(true);
   private _audioLevel = signal(0);
   public audioLevel = () => this._audioLevel();
-  public modelName = signal('Boîte de substitution (Échec du chargement du dragon)');
 
   private camera!: THREE.PerspectiveCamera;
   private renderer!: THREE.WebGLRenderer;
@@ -52,6 +53,29 @@ export class MainVisualizer implements OnInit, AfterViewInit {
   private frequencyData: Uint8Array<ArrayBuffer> | null = null;
 
   private clock = new THREE.Clock();
+
+  public volume = 0.5;
+
+  playAudio() {
+    const audio = this.systemAudioRef.nativeElement;
+    audio.play();
+  }
+
+  pauseAudio() {
+    const audio = this.systemAudioRef.nativeElement;
+    audio.pause();
+  }
+
+  stopAudio() {
+    const audio = this.systemAudioRef.nativeElement;
+    audio.pause();
+    audio.currentTime = 0;
+  }
+
+  changeVolume(event: any) {
+    const audio = this.systemAudioRef.nativeElement;
+    audio.volume = this.volume;
+  }
 
   private get canvas(): HTMLCanvasElement {
     return this.canvasRef.nativeElement;
@@ -82,7 +106,8 @@ export class MainVisualizer implements OnInit, AfterViewInit {
       this.nearClipPlane,
       this.farClipPlane
     );
-    this.camera.position.set(this.cameraX, this.cameraY, this.cameraZ);
+    this.camera.position.set(400, 0, 0);
+    this.camera.rotation.set(0.7, 1.5, 0);
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
     const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
@@ -100,20 +125,16 @@ export class MainVisualizer implements OnInit, AfterViewInit {
       if (maybeObj && (maybeObj as any).animations?.length > 0) {
         this.objMesh = maybeObj as any;
         this.scene.add(this.objMesh);
-        this.modelName.set('Dragon (chargé via ModelLoaderService)');
         this.setupAnimationsFromObject(this.objMesh);
       } else {
-        const result = await this.loadGLTFWithAnimations(path, 20);
+        const result = await this.loadGLTFWithAnimations(path, 40);
         this.objMesh = result.model;
         this.animations = result.animations;
-        this.objMesh.rotation.y = 11;
         this.scene.add(this.objMesh);
-        this.modelName.set('Dragon (chargé via GLTFLoader)');
         this.setupAnimationsFromClips(this.objMesh, this.animations);
       }
     } catch (err) {
       console.warn('Erreur chargement dragon :', err);
-      this.modelName.set('Boîte de substitution');
       this.createPlaceholderMesh();
     }
   }
@@ -129,7 +150,7 @@ export class MainVisualizer implements OnInit, AfterViewInit {
     const path = 'assets/VisualisationAudio/planet/scene.gltf';
 
     try {
-      const planet = await ModelLoaderService.loadGLTFModel(path, [], 1);
+      const planet = await ModelLoaderService.loadGLTFModel(path, [], 2);
       this.planetMesh = planet;
     } catch {
       const geo = new THREE.SphereGeometry(60, 32, 32);
@@ -141,7 +162,7 @@ export class MainVisualizer implements OnInit, AfterViewInit {
       this.planetMesh = new THREE.Mesh(geo, mat);
     }
 
-    this.planetMesh.position.set(0, -100, -200);
+    this.planetMesh.position.set(0, -180, -200);
     this.scene.add(this.planetMesh);
   }
 
@@ -221,7 +242,7 @@ export class MainVisualizer implements OnInit, AfterViewInit {
 
   private async askForAudio(): Promise<void> {
     const { value: file } = await Swal.fire({
-      position: "top-start",
+      position: 'top-start',
       title: 'Choisissez un fichier audio',
       input: 'file',
       inputAttributes: { accept: 'audio/*' },
@@ -276,22 +297,20 @@ export class MainVisualizer implements OnInit, AfterViewInit {
     const audioLevel = this.getAudioLevel();
 
     if (this.mixer) this.mixer.update(delta);
-    if (!this.objMesh || !this.frequencyData) return;
+    if (!this.objMesh) return;
 
-    const bass = this.getFrequencyRangeLevel(0, 20);
-    const treble = this.getFrequencyRangeLevel(60, 128);
-
-    const target = treble * 40 - bass * 20;
-
-    this.objMesh.position.y = THREE.MathUtils.lerp(this.objMesh.position.y, target, 1);
+    const minRotation = -Math.PI / 16;
+    const maxRotation = Math.PI / 2;
+    this.objMesh.rotation.x = THREE.MathUtils.lerp(minRotation, maxRotation, audioLevel);
 
     const rotationSpeed = audioLevel * 0.2;
-
-    if (this.planetMesh) this.planetMesh.rotation.y += rotationSpeed;
-
+    if (this.planetMesh) {
+      this.planetMesh.rotation.y += rotationSpeed;
+      this.planetMesh.rotation.z += 0.001;
+    }
     this.cloudParticles.forEach((p) => {
-      p.rotation.y += rotationSpeed * 0.2;
-      p.rotation.x += 0.0005;
+      p.rotation.x += rotationSpeed * 0.2;
+      p.rotation.y += 0.0005;
     });
   }
 
@@ -306,18 +325,18 @@ export class MainVisualizer implements OnInit, AfterViewInit {
     this.renderer.setClearColor(0x05051a, 1);
 
     const resize = () => {
-  const width = window.innerWidth;
-  const height = window.innerHeight;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
 
-  this.camera.aspect = width / height;
-  this.camera.updateProjectionMatrix();
+      this.camera.aspect = width / height;
+      this.camera.updateProjectionMatrix();
 
-  this.renderer.setSize(width, height);
-  this.renderer.setPixelRatio(window.devicePixelRatio);
-};
+      this.renderer.setSize(width, height);
+      this.renderer.setPixelRatio(window.devicePixelRatio);
+    };
 
-window.addEventListener('resize', resize);
-resize();
+    window.addEventListener('resize', resize);
+    resize();
 
     const render = () => {
       requestAnimationFrame(render);

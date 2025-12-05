@@ -1,2 +1,16 @@
-<audio #systemAudio></audio>
+<div class="audio-controls">
+  <button (click)="playAudio()">▶️ Play</button>
+  <button (click)="pauseAudio()">⏸️ Pause</button>
+  <button (click)="stopAudio()">⏹️ Stop</button>
+  <input
+    type="range"
+    min="0"
+    max="1"
+    step="0.01"
+    [(ngModel)]="volume"
+    (input)="changeVolume($event)"
+  />
+
+  <audio #systemAudio></audio>
+</div>
 <canvas #canvas id="canvas"></canvas>

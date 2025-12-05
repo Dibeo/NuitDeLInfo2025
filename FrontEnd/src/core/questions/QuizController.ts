@@ -25,7 +25,6 @@ export default class {
   }
 
   public choose(answer: 'A' | 'B'): boolean {
-    console.log(this._currentQuestion);
     if (!this._currentQuestion) {
       return false;
     }
@@ -39,7 +38,6 @@ export default class {
   }
 
   public getQuestion(): string {
-    console.log(this._currentQuestion);
     return this._currentQuestion?.question || '';
   }
 

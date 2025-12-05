@@ -1,0 +1,4 @@
+[build]
+  base = "FrontEnd"
+  command = "npm run build -- --configuration production"
+  publish = "FrontEnd/dist/NuitDeLInfo2025"

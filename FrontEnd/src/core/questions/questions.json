@@ -1,13 +1,13 @@
 [
   {
-    "question": "Commençons par un constat simple : pourquoi de nombreuses écoles doivent-elles bientôt jeter leurs ordinateurs ?",
-    "a": "Car la fin du support de Windows 10 rend le matériel 'obsolète'",
-    "b": "Car les écrans sont devenus noirs et blancs",
+    "question": "Commencons par un constat simple \n : pourquoi de nombreuses écoles \n doivent-elles bientôt jeter \n leurs ordinateurs ?",
+    "a": "Car la fin du support \n de Windows 10 rend le matériel \n 'obsolète'",
+    "b": "Car les écrans sont \n devenus noirs et blancs",
     "correctAnswer": "a"
   },
   {
-    "question": "Pourtant, ces ordinateurs fonctionnent encore physiquement ! Comment appelle-t-on le fait de devoir jeter un appareil qui marche juste à cause du logiciel ?",
-    "a": "L'obsolescence programmée (ou logicielle)",
+    "question": "Pourtant, ces ordinateurs fonctionnent \n encore physiquement ! Comment \n appelle-t-on le fait de devoir jeter \n un appareil qui marche juste \n à cause du logiciel ?",
+    "a": "L'obsolescence programmée \n (ou logicielle)",
     "b": "La malchance technologique",
     "correctAnswer": "a"
   },

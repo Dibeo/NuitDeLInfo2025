@@ -2,9 +2,15 @@ import { Component, ElementRef, ViewChild, AfterViewInit, Input } from '@angular
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
+import QuizController from '../../../../core/questions/QuizController.js';
+import { XpBar } from '../../xp-bar/xp-bar.js';
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
+
 
 @Component({
   selector: 'app-scene',
+  imports: [XpBar],
   templateUrl: './scene.html',
   styleUrls: ['./scene.css'],
 })
@@ -32,6 +38,10 @@ export class Scene implements AfterViewInit {
   private treeGLTF!: THREE.Group;
   private movingGLTF: THREE.Object3D[] = [];
 
+  private textMesh!: THREE.Object3D;
+
+  //controller
+  private controller: QuizController = new QuizController();
 
   private raycaster = new THREE.Raycaster();
   private mouse = new THREE.Vector2();
@@ -55,6 +65,10 @@ export class Scene implements AfterViewInit {
 
     this.canvas.addEventListener('click', (event) => this.onClick(event), false);
 
+    window.addEventListener('resize', () => this.onWindowResize(), false);
+
+    // Appel initial pour que le canvas prenne tout l'écran
+
     // Usage
     this.loadGLTFModel('assets/Principal/landcape/voxel_landscape.glb')
     .then(obj => this.landscapeGLTF = obj);
@@ -64,6 +78,7 @@ export class Scene implements AfterViewInit {
 
     this.startSpawningGLTF();
 
+    this.onWindowResize();
 
   }
 
@@ -93,12 +108,12 @@ export class Scene implements AfterViewInit {
     this.cube1 = new THREE.Mesh(geometry, material);
     this.scene.add(this.cube1);
     this.cube1.position.set(-1, 0, -20);
-    this.cube1.scale.set(1,2,1);
+    this.cube1.scale.set(1,1,1);
 
     this.cube2 = new THREE.Mesh(geometry, material);
     this.scene.add(this.cube2);
     this.cube2.position.set(1, 0, -20);
-    this.cube2.scale.set(1,2,1);
+    this.cube2.scale.set(1,1,1);
 
     // Les ajouter à movingGLTF pour avancer avec le scroll
     this.movingGLTF.push(this.cube1, this.cube2);
@@ -111,6 +126,13 @@ export class Scene implements AfterViewInit {
       this.scene.background = texture;
       this.scene.environment = texture;
     });*/
+
+    // Charger une police
+
+    const txt: string = this.controller.getQuestion();
+    this.LoadText(this.controller.getQuestion()).then(group => {
+      this.textMesh = group;
+    });
 
     this.loadGLTFModel('assets/Principal/Sol/scene1.glb')
     .then(obj => {
@@ -215,9 +237,11 @@ export class Scene implements AfterViewInit {
 
 
 private startRenderingLoop(): void {
-    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
-    this.renderer.setPixelRatio(devicePixelRatio);
-    this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
+
+  this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
+  this.renderer.setPixelRatio(window.devicePixelRatio);
+  this.renderer.setSize(window.innerWidth, window.innerHeight);
+
 
     const clock = new THREE.Clock();
 
@@ -237,6 +261,37 @@ private startRenderingLoop(): void {
 }
 
 
+  private LoadText(txt: string): Promise<THREE.Object3D> {
+    return new Promise((resolve, reject) => {
+      const loader = new FontLoader();
+      loader.load(
+        'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/fonts/helvetiker_regular.typeface.json',
+        (font) => {
+          const lines = txt.split('\n');
+          const size = 0.1;
+          const height = 0.01;
+          const spacing = 0.2;
+          const textGroup = new THREE.Group();
+
+          lines.forEach((line, index) => {
+            const geometry = new TextGeometry(line, { font, size, depth: height, curveSegments: 12 });
+            const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(0, -index * spacing, 0);
+            textGroup.add(mesh);
+          });
+
+          textGroup.position.set(this.cube1.position.x, this.cube1.position.y + 1, this.cube1.position.z);
+          this.scene.add(textGroup);
+          resolve(textGroup);
+        },
+        undefined,
+        (err) => reject(err)
+      );
+    });
+  }
+
+
 
 
   private onClick(event: MouseEvent): void {
@@ -246,19 +301,30 @@ private startRenderingLoop(): void {
 
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
+    let result: boolean = false;
+
     // Tester séparément les deux cubes
     const intersectsRight = this.raycaster.intersectObjects([this.cube1], true);
     const intersectsLeft = this.raycaster.intersectObjects([this.cube2], true);
 
     if (intersectsRight.length > 0) {
       const mesh = intersectsRight[0].object as THREE.Mesh;
-      (mesh.material as THREE.MeshStandardMaterial).color.set(0xff0000);
+      if (this.controller.choose('B')) {
+        console.log("B est true");
+        (mesh.material as THREE.MeshStandardMaterial).color.set(0xff0000);
+      }
+      else console.log("Be est false");
 
     }
 
     if (intersectsLeft.length > 0) {
       const mesh = intersectsLeft[0].object as THREE.Mesh;
-      (mesh.material as THREE.MeshStandardMaterial).color.set(0x00ff00);
+      if (this.controller.choose('A')) {
+          (mesh.material as THREE.MeshStandardMaterial).color.set(0xff0000);
+          console.log("A est true");
+      }
+
+      else console.log("A est false");
     }
   }
 
@@ -362,6 +428,9 @@ private updateMovingGLTF(deltaZ: number = 0, deltaTexture: number = 0): void {
       }
     }
 
+    this.textMesh.position.set(this.cube1.position.x, this.cube1.position.y + 1.5, this.cube1.position.z);
+
+
     if (deltaTexture !== 0) {
       this.advanceSolTexture(deltaTexture);
     }
@@ -386,6 +455,16 @@ private updateMovingGLTF(deltaZ: number = 0, deltaTexture: number = 0): void {
         this.updateMovingGLTF(this.advanceDistance, 0.01);
       }
     });
+  }
+
+  private onWindowResize(): void {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    this.camera.aspect = width / height;
+    this.camera.updateProjectionMatrix();
+
+    this.renderer.setSize(width, height);
   }
 
 }

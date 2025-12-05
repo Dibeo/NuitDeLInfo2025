@@ -1,6 +1,8 @@
 import { Routes } from '@angular/router';
 import { PodiumComponent } from './pages/podium/podium.component';
+import { Scene } from './component/Principal/scene/scene';
 
 export const routes: Routes = [
-    { path: 'podium', component: PodiumComponent }
+    { path: 'podium', component: PodiumComponent },
+    {path:"principal", component : Scene}  
 ];

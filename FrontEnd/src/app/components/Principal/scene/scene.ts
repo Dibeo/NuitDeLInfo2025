@@ -124,13 +124,13 @@ export class Scene implements AfterViewInit {
 
 
     //HDRI
-    /*const loader = new RGBELoader();
-    loader.load('assets/Principal/HDRI/HDR_rich_blue_nebulae_2.hdr', (texture) => {
-      texture.mapping = THREE.EquirectangularReflectionMapping;
-      this.scene.background = texture;
-      this.scene.environment = texture;
-    });*/
 
+  const loader = new THREE.TextureLoader();
+  loader.load('assets/Principal//file-886014965.jpg', (texture) => {
+    texture.mapping = THREE.EquirectangularReflectionMapping;
+    this.scene.background = texture;
+    this.scene.environment = texture;
+  });
     // Charger une police
 
 

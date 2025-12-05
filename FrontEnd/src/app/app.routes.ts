@@ -6,5 +6,5 @@ import { Scene } from './components/Principal/scene/scene';
 export const routes: Routes = [
     { path: 'podium', component : PodiumComponent },
     { path:'' , component : Scene },
-    {path:"VisualisationAudio", component : MainVisualizer}
+    {path:"visualisation-audio", component : MainVisualizer}
 ];

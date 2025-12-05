@@ -1,7 +1,7 @@
 import UserProgressAPI from './UserProgressAPI';
 
 export default class UserProgressRepository {
-  private static getUniqueId(): string {
+  public static getUniqueId(): string {
     const STORAGE_KEY = 'temp_guest_id';
     let guestId = localStorage.getItem(STORAGE_KEY);
     if (!guestId) {
@@ -30,5 +30,10 @@ export default class UserProgressRepository {
     const response: Response = await UserProgressAPI.fetch('POST', `/xp`, body);
     const data: any = await response.json();
     return data.currentXp;
+  }
+
+  public static async resetXp(): Promise<void> {
+    const guestId = this.getUniqueId();
+    await UserProgressAPI.fetch('DELETE', `/xp/${guestId}`);
   }
 }

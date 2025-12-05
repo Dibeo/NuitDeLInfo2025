@@ -1,4 +1,4 @@
 [build]
   base = "FrontEnd"
   command = "npm run build -- --configuration production"
-  publish = "FrontEnd/dist/NuitDeLInfo2025"
+  publish = "dist/NuitDeLInfo2025"

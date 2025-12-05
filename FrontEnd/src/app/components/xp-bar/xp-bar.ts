@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Component, Input, OnDestroy, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common'; // Nécessaire pour les pipes ou directives basiques
+import { CommonModule } from '@angular/common';
 import UserProgressRepository from '../../../core/UserProgressAPI/UserProgressRepository';
 
 const FETCH_WAIT_TIME: number = 2000;
@@ -22,7 +22,6 @@ export class XpBar implements OnInit, OnDestroy {
   public async ngOnInit(): Promise<void> {
     await this.updateXp();
     this._intervalId = setInterval(async () => {
-      await UserProgressRepository.addXp(1);
       await this.updateXp();
     }, FETCH_WAIT_TIME);
   }

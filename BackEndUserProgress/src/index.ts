@@ -65,6 +65,30 @@ app.get("/xp/:userId", (req: Request, res: Response) => {
     res.status(200).json({ userId: userId, xp: currentXp });
 });
 
+app.delete("/xp/:userId", (req: Request, res: Response) => {
+    const userId = req.params.userId;
+
+    try {
+        const deleteStmt = db.prepare("DELETE FROM users WHERE id = ?");
+        const info = deleteStmt.run(userId);
+
+        if (info.changes > 0) {
+            res.status(200).json({
+                success: true,
+                message: `L'utilisateur ${userId} a été supprimé de la base.`,
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                message: `Utilisateur ${userId} introuvable.`,
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Erreur lors de la suppression" });
+    }
+});
+
 app.listen(port, () => {
     console.log(`[BackEndUserProgress]: http://localhost:${port}`);
 });

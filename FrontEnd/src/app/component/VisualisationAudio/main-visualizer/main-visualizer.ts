@@ -37,9 +37,11 @@ export class MainVisualizer implements OnInit, AfterViewInit {
   private camera!: THREE.PerspectiveCamera;
   private renderer!: THREE.WebGLRenderer;
   private scene!: THREE.Scene;
+
   private objMesh: THREE.Group | THREE.Mesh | THREE.Object3D | any = null;
-  private cloudParticles: THREE.Points[] = [];
   private planetMesh: THREE.Group | THREE.Mesh | null = null;
+  private cloudParticles: THREE.Points[] = [];
+
   private mixer: THREE.AnimationMixer | null = null;
   private animations: THREE.AnimationClip[] = [];
   private currentAction: THREE.AnimationAction | null = null;
@@ -59,21 +61,49 @@ export class MainVisualizer implements OnInit, AfterViewInit {
 
   async ngAfterViewInit(): Promise<void> {
     this.createScene();
+
+    await this.loadMainModel();
+    await this.createPlanet();
+    this.createClouds(2000);
+
+    this.startRenderingLoop();
+    this.isLoading.set(false);
+
     await this.initAudio();
+  }
 
-    const dragonModelPath = 'assets/VisualisationAudio/fire_dragon_minecraft/scene.gltf';
+  private createScene(): void {
+    this.scene = new THREE.Scene();
+
+    const aspectRatio = this.canvas.clientWidth / this.canvas.clientHeight;
+    this.camera = new THREE.PerspectiveCamera(
+      this.fieldOfView,
+      aspectRatio,
+      this.nearClipPlane,
+      this.farClipPlane
+    );
+    this.camera.position.set(this.cameraX, this.cameraY, this.cameraZ);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    dirLight.position.set(10, 10, 10);
+
+    this.scene.add(ambientLight, dirLight);
+  }
+
+  private async loadMainModel(): Promise<void> {
+    const path = 'assets/VisualisationAudio/fire_dragon_minecraft/scene.gltf';
+
     try {
-      const maybeObj = await ModelLoaderService.loadGLTFModel(dragonModelPath, [], 20).catch(
-        () => null
-      );
+      const maybeObj = await ModelLoaderService.loadGLTFModel(path, [], 20).catch(() => null);
 
-      if (maybeObj && (maybeObj as any).animations && (maybeObj as any).animations.length > 0) {
+      if (maybeObj && (maybeObj as any).animations?.length > 0) {
         this.objMesh = maybeObj as any;
         this.scene.add(this.objMesh);
         this.modelName.set('Dragon (chargé via ModelLoaderService)');
-        this.setupAnimationsFromObject(this.objMesh as any);
+        this.setupAnimationsFromObject(this.objMesh);
       } else {
-        const result = await this.loadGLTFWithAnimations(dragonModelPath, 20);
+        const result = await this.loadGLTFWithAnimations(path, 20);
         this.objMesh = result.model;
         this.animations = result.animations;
         this.objMesh.rotation.y = 11;
@@ -85,12 +115,94 @@ export class MainVisualizer implements OnInit, AfterViewInit {
       console.warn('Erreur chargement dragon :', err);
       this.modelName.set('Boîte de substitution');
       this.createPlaceholderMesh();
-    } finally {
-      await this.createPlanet();
-      this.createClouds(2000);
-      this.isLoading.set(false);
-      this.startRenderingLoop();
     }
+  }
+
+  private createPlaceholderMesh(): void {
+    const geo = new THREE.BoxGeometry(30, 30, 30);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x4a5568 });
+    this.objMesh = new THREE.Mesh(geo, mat);
+    this.scene.add(this.objMesh);
+  }
+
+  private async createPlanet(): Promise<void> {
+    const path = 'assets/VisualisationAudio/planet/scene.gltf';
+
+    try {
+      const planet = await ModelLoaderService.loadGLTFModel(path, [], 1);
+      this.planetMesh = planet;
+    } catch {
+      const geo = new THREE.SphereGeometry(60, 32, 32);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0x3d9d69,
+        roughness: 0.8,
+        metalness: 0.1,
+      });
+      this.planetMesh = new THREE.Mesh(geo, mat);
+    }
+
+    this.planetMesh.position.set(0, -100, -200);
+    this.scene.add(this.planetMesh);
+  }
+
+  private createClouds(count: number): void {
+    const vertices: number[] = [];
+    for (let i = 0; i < count; i++) {
+      vertices.push(
+        (Math.random() - 0.5) * 500,
+        (Math.random() - 0.5) * 500,
+        (Math.random() - 0.5) * 500
+      );
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+
+    const mat = new THREE.PointsMaterial({
+      color: 0xaaaaaa,
+      size: 3,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      sizeAttenuation: true,
+    });
+
+    const clouds = new THREE.Points(geo, mat);
+    this.cloudParticles.push(clouds);
+    this.scene.add(clouds);
+  }
+
+  private loadGLTFWithAnimations(
+    path: string,
+    scale = 1
+  ): Promise<{ model: THREE.Group; animations: THREE.AnimationClip[] }> {
+    const loader = new GLTFLoader();
+    return new Promise((resolve, reject) => {
+      loader.load(
+        path,
+        (gltf) => {
+          const model = gltf.scene;
+          model.scale.set(scale, scale, scale);
+          resolve({ model: model as THREE.Group, animations: gltf.animations || [] });
+        },
+        undefined,
+        reject
+      );
+    });
+  }
+
+  private setupAnimationsFromObject(obj: any) {
+    this.setupAnimationsFromClips(obj, obj.animations || []);
+  }
+
+  private setupAnimationsFromClips(obj: THREE.Object3D, clips: THREE.AnimationClip[]) {
+    if (!clips?.length) return;
+
+    this.mixer = new THREE.AnimationMixer(obj);
+    this.animations = clips;
+
+    this.currentAnimationIndex = 0;
+    this.currentAction = this.mixer.clipAction(clips[0]);
+    this.currentAction.play();
   }
 
   private async initAudio(): Promise<void> {
@@ -111,32 +223,25 @@ export class MainVisualizer implements OnInit, AfterViewInit {
     const { value: file } = await Swal.fire({
       title: 'Choisissez un fichier audio',
       input: 'file',
-      inputAttributes: {
-        accept: 'audio/*',
-        'aria-label': 'Choisissez un fichier audio',
-      },
+      inputAttributes: { accept: 'audio/*' },
       showCancelButton: true,
     });
 
     if (!file) return;
 
-    const audioElement = this.systemAudioRef.nativeElement;
-    audioElement.src = URL.createObjectURL(file as File);
-    audioElement.load();
+    const audioEl = this.systemAudioRef.nativeElement;
+    audioEl.src = URL.createObjectURL(file);
+    audioEl.load();
 
-    const source = this.audioContext!.createMediaElementSource(audioElement);
+    const source = this.audioContext!.createMediaElementSource(audioEl);
     source.connect(this.analyser!);
     this.analyser!.connect(this.audioContext!.destination);
 
-    await audioElement.play().catch(() => {
-      console.warn(
-        'Lecture automatique bloquée. L’utilisateur devra cliquer pour démarrer l’audio.'
-      );
-    });
+    await audioEl.play().catch(() => {});
 
     this.isAudioReady.set(true);
 
-    audioElement.onended = () => {
+    audioEl.onended = () => {
       this.isAudioReady.set(false);
       this.askForAudio();
     };
@@ -148,127 +253,20 @@ export class MainVisualizer implements OnInit, AfterViewInit {
     this.analyser.getByteFrequencyData(this.frequencyData);
     let sum = 0;
     for (let i = 0; i < this.frequencyData.length; i++) sum += this.frequencyData[i];
+
     return sum / this.frequencyData.length / 255;
   }
 
-  private createScene(): void {
-    this.scene = new THREE.Scene();
-    const aspectRatio = this.canvas.clientWidth / this.canvas.clientHeight;
-    this.camera = new THREE.PerspectiveCamera(
-      this.fieldOfView,
-      aspectRatio,
-      this.nearClipPlane,
-      this.farClipPlane
-    );
-    this.camera.position.set(this.cameraX, this.cameraY, this.cameraZ);
-
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-    this.scene.add(ambientLight);
-
-    const dir = new THREE.DirectionalLight(0xffffff, 0.6);
-    dir.position.set(10, 10, 10);
-    this.scene.add(dir);
-  }
-
-  private async createPlanet(): Promise<void> {
-    const planetModelPath = 'assets/VisualisationAudio/planet/scene.gltf';
-
-    try {
-      const planet = await ModelLoaderService.loadGLTFModel(planetModelPath, [], 1);
-      this.planetMesh = planet;
-      this.planetMesh.position.set(0, -100, -200);
-      this.scene.add(this.planetMesh);
-    } catch (error) {
-      console.warn(
-        'Erreur lors du chargement du modèle de planète, création d’une sphère par défaut.',
-        error
-      );
-      const geometry = new THREE.SphereGeometry(60, 32, 32);
-      const material = new THREE.MeshStandardMaterial({
-        color: 0x3d9d69,
-        roughness: 0.8,
-        metalness: 0.1,
-      });
-      this.planetMesh = new THREE.Mesh(geometry, material);
-      this.planetMesh.position.set(0, -100, -200);
-      this.scene.add(this.planetMesh);
-    }
-  }
-
-  private createClouds(count: number): void {
-    const geometry = new THREE.BufferGeometry();
-    const vertices: number[] = [];
-    for (let i = 0; i < count; i++) {
-      vertices.push(
-        (Math.random() - 0.5) * 500,
-        (Math.random() - 0.5) * 500,
-        (Math.random() - 0.5) * 500
-      );
-    }
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-
-    const material = new THREE.PointsMaterial({
-      color: 0xaaaaaa,
-      size: 3,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      sizeAttenuation: true,
-    });
-
-    const clouds = new THREE.Points(geometry, material);
-    this.cloudParticles.push(clouds);
-    this.scene.add(clouds);
-  }
-
-  private createPlaceholderMesh(): void {
-    const geometry = new THREE.BoxGeometry(30, 30, 30);
-    const material = new THREE.MeshStandardMaterial({ color: 0x4a5568 });
-    this.objMesh = new THREE.Mesh(geometry, material);
-    this.scene.add(this.objMesh);
-  }
-
-  private setupAnimationsFromObject(obj: any) {
-    const animations: THREE.AnimationClip[] = (obj as any).animations || [];
-    this.setupAnimationsFromClips(obj, animations);
-  }
-
-  private setupAnimationsFromClips(obj: THREE.Object3D, clips: THREE.AnimationClip[]) {
-    if (!clips || clips.length === 0) return;
-
-    this.mixer = new THREE.AnimationMixer(obj);
-    this.animations = clips;
-
-    this.currentAnimationIndex = 0;
-    this.currentAction = this.mixer.clipAction(this.animations[this.currentAnimationIndex]);
-    this.currentAction.play();
-  }
-
-  private loadGLTFWithAnimations(
-    path: string,
-    scale = 1
-  ): Promise<{ model: THREE.Group; animations: THREE.AnimationClip[] }> {
-    const loader = new GLTFLoader();
-    return new Promise((resolve, reject) => {
-      loader.load(
-        path,
-        (gltf) => {
-          const model = gltf.scene;
-          model.scale.set(scale, scale, scale);
-          resolve({ model: model as THREE.Group, animations: gltf.animations || [] });
-        },
-        undefined,
-        (err) => reject(err)
-      );
-    });
-  }
-
-  private getFrequencyRangeLevel(startBin: number, endBin: number): number {
+  private getFrequencyRangeLevel(start: number, end: number): number {
     if (!this.isAudioReady() || !this.analyser || !this.frequencyData) return 0;
-    let sum = 0;
-    const count = Math.max(1, endBin - startBin);
+
     this.analyser.getByteFrequencyData(this.frequencyData);
-    for (let i = startBin; i < endBin && i < this.frequencyData.length; i++)
+    let sum = 0;
+    const count = Math.max(1, end - start);
+
+    for (let i = start; i < end && i < this.frequencyData.length; i++) {
       sum += this.frequencyData[i];
+    }
     return sum / count / 255;
   }
 
@@ -277,25 +275,21 @@ export class MainVisualizer implements OnInit, AfterViewInit {
     const audioLevel = this.getAudioLevel();
 
     if (this.mixer) this.mixer.update(delta);
-
     if (!this.objMesh || !this.frequencyData) return;
 
-    const bass = this.getFrequencyRangeLevel(0, 20); // graves
-    const treble = this.getFrequencyRangeLevel(60, 128); // aigus = hauteur/pitch
+    const bass = this.getFrequencyRangeLevel(0, 20);
+    const treble = this.getFrequencyRangeLevel(60, 128);
 
-    // 🎵 Déplacement vertical basé sur la hauteur du son (aigus)
-    const target = treble * 40 - bass * 20; // Ajuste les valeurs pour l’amplitude voulue
+    const target = treble * 40 - bass * 20;
 
-    // Lissage du mouvement pour éviter les secousses
-    this.objMesh.rotation.height = THREE.MathUtils.lerp(this.objMesh.rotation.height, target, 0.1);
+    this.objMesh.position.y = THREE.MathUtils.lerp(this.objMesh.position.y, target, 1);
+
     const rotationSpeed = audioLevel * 0.2;
 
-    if (this.planetMesh) {
-      this.planetMesh.rotation.y += rotationSpeed;
-    }
+    if (this.planetMesh) this.planetMesh.rotation.y += rotationSpeed;
 
     this.cloudParticles.forEach((p) => {
-      p.rotation.y += rotationSpeed * .2;
+      p.rotation.y += rotationSpeed * 0.2;
       p.rotation.x += 0.0005;
     });
   }
@@ -306,19 +300,21 @@ export class MainVisualizer implements OnInit, AfterViewInit {
       antialias: true,
       alpha: true,
     });
+
     this.renderer.setPixelRatio(devicePixelRatio);
-    this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
     this.renderer.setClearColor(0x05051a, 1);
 
-    const onResize = () => {
+    const resize = () => {
       const width = this.canvas.clientWidth;
       const height = this.canvas.clientHeight;
+
       this.camera.aspect = width / height;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(width, height);
     };
-    window.addEventListener('resize', onResize);
-    onResize();
+
+    window.addEventListener('resize', resize);
+    resize();
 
     const render = () => {
       requestAnimationFrame(render);

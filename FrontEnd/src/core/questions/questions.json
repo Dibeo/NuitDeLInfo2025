@@ -1,0 +1,74 @@
+[
+  {
+    "question": "Commençons par un\nconstat simple : pourquoi\nde nombreuses écoles\ndoivent-elles bientôt jeter\nleurs ordinateurs ?",
+    "a": "Car la fin du support de Windows 10 rend le matériel 'obsolète'",
+    "b": "Car les écrans sont devenus noirs et blancs",
+    "correctAnswer": "a"
+  },
+  {
+    "question": "Pourtant, ces ordinateurs\nfonctionnent encore physiquement !\nComment appelle-t-on le\nfait de devoir\njeter un appareil\nqui marche juste\nà cause du logiciel ?",
+    "a": "L'obsolescence programmée (ou logicielle)",
+    "b": "La malchance technologique",
+    "correctAnswer": "a"
+  },
+  {
+    "question": "Face à ce\ngaspillage imposé par\nles géants du\nnumérique (les 'Big Tech'),\nquelle figure biblique\nle projet NIRD\nutilise-t-il pour illustrer\nle combat ?",
+    "a": "David (l'école) contre Goliath (les Big Tech)",
+    "b": "Noé (le directeur) contre le Déluge (les bugs)",
+    "correctAnswer": "a"
+  },
+  {
+    "question": "Pour organiser la\nrésistance, les écoles\nse regroupent sous\nla bannière 'NIRD'.\nQue veut dire\nle 'D' de NIRD ?",
+    "a": "Durable (pour la planète)",
+    "b": "Digital (pour les doigts)",
+    "correctAnswer": "a"
+  },
+  {
+    "question": "Et que signifie\nle 'I' et\nle 'R' dans NIRD ?",
+    "a": "Inclusif et Responsable",
+    "b": "Incroyable et Rapide",
+    "correctAnswer": "a"
+  },
+  {
+    "question": "NIRD compare l'établissement\nscolaire à un\nlieu célèbre de\nla bande dessinée.\nLequel ?",
+    "a": "Le village d'Astérix qui résiste à l'envahisseur",
+    "b": "Le château de Moulinsart qui attend Tintin",
+    "correctAnswer": "a"
+  },
+  {
+    "question": "Concrètement, quelle est\nl'arme secrète du\nvillage pour ne\nplus dépendre de\nWindows et sauver\nles vieux PC ?",
+    "a": "Installer Linux, un système libre et léger",
+    "b": "Mettre les ordinateurs au frigo pour les refroidir",
+    "correctAnswer": "a"
+  },
+  {
+    "question": "En plus de\nchanger de système,\nque préconise NIRD\npour le matériel ?",
+    "a": "Le réemploi et le reconditionnement",
+    "b": "L'achat compulsif de tablettes neuves",
+    "correctAnswer": "a"
+  },
+  {
+    "question": "NIRD s'inquiète aussi\nde vos données\npersonnelles. Où vont\nsouvent les données\nscolaires avec les\ngéants du web ?",
+    "a": "Sur des serveurs hors de l'Union Européenne",
+    "b": "Dans un coffre-fort sous le bureau du proviseur",
+    "correctAnswer": "a"
+  },
+  {
+    "question": "Pour ne pas\nrester isolé, où\nles profs et\nélèves peuvent-ils partager\nleurs outils libres ?",
+    "a": "Sur 'La Forge' des communs numériques",
+    "b": "Sur un groupe WhatsApp secret",
+    "correctAnswer": "a"
+  },
+  {
+    "question": "Au final, quel\nest le super-pouvoir\nque NIRD veut\nredonner aux élèves\net aux profs ?",
+    "a": "Le pouvoir d'agir et l'autonomie technologique",
+    "b": "Le pouvoir de supprimer les notes sur le serveur",
+    "correctAnswer": "a"
+  },
+  {
+    "question": "Votre équipe participe\nà la Nuit\nde l'Info. Sous\nquelle licence devez-vous\npublier votre projet\npour respecter l'esprit NIRD ?",
+    "a": "Une licence Libre (partageable par tous)",
+    "b": "Une licence Copyright (interdit de copier)",
+    "correctAnswer": "a"
+  }
+]

@@ -4,6 +4,7 @@ env:
   TARGET_LANGUAGE: "javascript" # To change depending of your project
 
 on:
+  workflow_dispatch: 
   push:
     branches: [ "main" ]
   pull_request:
